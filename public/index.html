@@ -604,14 +604,31 @@ async function prepareRewardedAd(){
     // Ad closed by user
     try{
       const lClosed = await admobPlugin.addListener(
-        'onRewardedVideoAdClosed', ()=>{
-          console.log('Ad closed');
-          rewardedReady = false;
-          clearTimeout(rewardFallbackTimer);
-          closeAd();
-          setTimeout(prepareRewardedAd, 1000);
-        }
-      );
+  'onRewardedVideoAdClosed', ()=>{
+    console.log('Ad closed');
+    rewardedReady = false;
+
+    // ✅ If reward event already fired — just close
+    if(rewardGiven){
+      clearTimeout(rewardFallbackTimer);
+      closeAd();
+      setTimeout(prepareRewardedAd, 1000);
+      return;
+    }
+
+    // ✅ Reward event didn't fire yet — wait 1 second then give reward
+    // This handles AdMob versions where reward fires AFTER close event
+    setTimeout(()=>{
+      if(!rewardGiven){
+        console.log('Reward given after ad close');
+        handleRewardReceived();
+      }
+      closeAd();
+      setTimeout(prepareRewardedAd, 1000);
+    }, 1000);
+  }
+);
+
       rewardListeners.push(lClosed);
     }catch(e){}
 
@@ -838,7 +855,7 @@ async function startAd(){
           adId: ADMOB.rewarded,
           isTesting: USE_TEST_ADS,
         });
-        await new Promise(r=>setTimeout(r,2500));
+        await new Promise(r=>setTimeout(r,500));
       }
 
       setAdStatus('Showing AdMob test ad...');
@@ -852,7 +869,7 @@ async function startAd(){
           console.log('⚠️ Safety fallback reward triggered');
           handleRewardReceived();
         }
-      }, 40000);
+      }, 3000);
 
       // Show real AdMob rewarded video
       await admobPlugin.showRewardVideoAd();
