@@ -9,10 +9,10 @@ jobs:
   build-android:
     name: Build Android AAB
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🟢 Setup Node.js 20
@@ -29,7 +29,7 @@ jobs:
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: 📦 Install NPM Dependencies
+      - name: 📦 Install Dependencies
         run: |
           npm install
           npm install -g @capacitor/cli
@@ -38,8 +38,17 @@ jobs:
         run: npx cap add android
         continue-on-error: true
 
-      - name: 🔄 Sync Capacitor
-        run: npx cap sync android
+      - name: 🔌 Install AdMob Plugin
+        run: |
+          npm install @capacitor-community/admob
+          npx cap sync android
+
+      - name: 📝 Update AndroidManifest for AdMob
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>\n    </application>|' $MANIFEST
+          sed -i 's|<uses-permission android:name="android.permission.INTERNET"/>|<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>|' $MANIFEST
+          echo "✅ AndroidManifest updated"
 
       - name: 🔑 Setup Keystore
         run: |
@@ -69,6 +78,7 @@ jobs:
               buildTypes {
                   release {
                       signingConfig signingConfigs.release
+                      minifyEnabled false
                   }
               }
           }
@@ -102,5 +112,5 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: ✅ Build Complete
+      - name: ✅ Done
         run: echo "🧙 BUILD COMPLETE!"
