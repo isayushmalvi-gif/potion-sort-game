@@ -43,12 +43,110 @@ jobs:
           npm install @capacitor-community/admob
           npx cap sync android
 
+      - name: 🎨 Generate App Icons
+        run: |
+          echo "Installing sharp for image resizing..."
+          npm install sharp
+
+          echo "Creating icon resize script..."
+          cat > resize_icon.js << 'ICONEOF'
+          const sharp = require('sharp');
+          const fs = require('fs');
+          const path = require('path');
+
+          const inputFile = 'public/ic_launcher_512.png';
+          const resDir = 'android/app/src/main/res';
+
+          // Check if input file exists
+          if (!fs.existsSync(inputFile)) {
+            console.error('❌ Icon file not found:', inputFile);
+            process.exit(1);
+          }
+
+          console.log('✅ Found icon file:', inputFile);
+
+          const sizes = [
+            { size: 48,  folder: 'mipmap-mdpi'    },
+            { size: 72,  folder: 'mipmap-hdpi'    },
+            { size: 96,  folder: 'mipmap-xhdpi'   },
+            { size: 144, folder: 'mipmap-xxhdpi'  },
+            { size: 192, folder: 'mipmap-xxxhdpi' },
+          ];
+
+          // Process all sizes
+          const promises = [];
+
+          sizes.forEach(({ size, folder }) => {
+            const dir = path.join(resDir, folder);
+
+            // Create directory if not exists
+            fs.mkdirSync(dir, { recursive: true });
+            console.log('📁 Created dir:', dir);
+
+            // Generate square icon
+            const p1 = sharp(inputFile)
+              .resize(size, size, { fit: 'cover' })
+              .png()
+              .toFile(path.join(dir, 'ic_launcher.png'))
+              .then(() => console.log(`✅ ${folder}/ic_launcher.png (${size}x${size})`))
+              .catch(err => console.error(`❌ ${folder}/ic_launcher.png:`, err));
+            promises.push(p1);
+
+            // Generate round icon (same image, Android uses it for circular display)
+            const p2 = sharp(inputFile)
+              .resize(size, size, { fit: 'cover' })
+              .png()
+              .toFile(path.join(dir, 'ic_launcher_round.png'))
+              .then(() => console.log(`✅ ${folder}/ic_launcher_round.png`))
+              .catch(err => console.error(`❌ ${folder}/ic_launcher_round.png:`, err));
+            promises.push(p2);
+
+            // Generate foreground icon (for adaptive icons)
+            const p3 = sharp(inputFile)
+              .resize(size, size, { fit: 'cover' })
+              .png()
+              .toFile(path.join(dir, 'ic_launcher_foreground.png'))
+              .then(() => console.log(`✅ ${folder}/ic_launcher_foreground.png`))
+              .catch(err => console.error(`❌ foreground:`, err));
+            promises.push(p3);
+          });
+
+          // Wait for all to complete
+          Promise.all(promises)
+            .then(() => {
+              console.log('');
+              console.log('🎨 All icons generated successfully!');
+              console.log('Sizes: 48, 72, 96, 144, 192');
+            })
+            .catch(err => {
+              console.error('Error generating icons:', err);
+              process.exit(1);
+            });
+          ICONEOF
+
+          echo "Running icon generator..."
+          node resize_icon.js
+
+          echo "Waiting for files to write..."
+          sleep 5
+
+          echo "Verifying icons..."
+          ls -la android/app/src/main/res/mipmap-mdpi/
+          ls -la android/app/src/main/res/mipmap-xxxhdpi/
+          echo "✅ Icons ready!"
+
       - name: 📝 Update AndroidManifest for AdMob
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
+
+          # Add AdMob App ID
           sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>\n    </application>|' $MANIFEST
+
+          # Add AD_ID permission
           sed -i 's|<uses-permission android:name="android.permission.INTERNET"/>|<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>|' $MANIFEST
+
           echo "✅ AndroidManifest updated"
+          cat $MANIFEST
 
       - name: 🔑 Setup Keystore
         run: |
@@ -59,6 +157,7 @@ jobs:
           keyAlias=${{ secrets.KEY_ALIAS }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           EOF
+          echo "✅ Keystore ready"
 
       - name: ⚙️ Configure Signing
         run: |
@@ -83,6 +182,7 @@ jobs:
               }
           }
           EOF
+          echo "✅ Signing configured"
 
       - name: 🔧 Make Gradlew Executable
         run: chmod +x android/gradlew
@@ -96,6 +196,12 @@ jobs:
         run: |
           cd android
           ./gradlew assembleDebug --stacktrace
+        continue-on-error: true
+
+      - name: 📱 Build Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --stacktrace
         continue-on-error: true
 
       - name: ⬆️ Upload Release AAB
@@ -112,5 +218,20 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: ✅ Done
-        run: echo "🧙 BUILD COMPLETE!"
+      - name: ⬆️ Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: potion-sort-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+
+      - name: ✅ Build Complete
+        run: |
+          echo "=================================="
+          echo "  🧙 POTION SORT BUILD COMPLETE!"
+          echo "=================================="
+          echo "  Download from Artifacts:"
+          echo "  📦 potion-sort-release-aab"
+          echo "  📱 potion-sort-debug-apk"
+          echo "  📱 potion-sort-release-apk"
+          echo "=================================="
