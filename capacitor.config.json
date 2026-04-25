@@ -13,11 +13,10 @@
     "backgroundColor": "#040210"
   },
   "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 2000,
-      "launchAutoHide": true,
-      "backgroundColor": "#040210",
-      "showSpinner": false
+    "AdMob": {
+      "appId": {
+        "android": "ca-app-pub-3940256099942544~3347511713"
+      }
     }
   }
 }
