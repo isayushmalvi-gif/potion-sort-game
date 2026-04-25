@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🧙 Potion Sort — Complete Edition</title>
+
+<!-- AdMob / AdSense for web testing -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544" crossorigin="anonymous"></script>
+
+<!-- Capacitor core (loaded when running as native app) -->
+<script>
+// Capacitor bridge — auto-available when running as Android APK
+window.CAPACITOR_AVAILABLE = false;
+document.addEventListener('DOMContentLoaded', () => {
+  if(window.Capacitor && window.Capacitor.isNativePlatform()) {
+    window.CAPACITOR_AVAILABLE = true;
+    console.log('✅ Running in Capacitor native app');
+  } else {
+    console.log('🌐 Running in browser — simulated ads active');
+  }
+});
+</script>
+
+<style>
+/* YOUR EXISTING CSS — unchanged */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#ffd700;--dark:#060412;--gem:#00d4ff;
+  --themeA:#7700ff;--themeB:#cc00ff;--themeC:#ff0066;
+  --themeBg1:#040210;--themeBg2:#080520;--themeBg3:#0a0418;
+  --themeBorder:rgba(140,100,255,0.28);
+  --themeGlow:rgba(120,0,255,0.4);
+  --bottleBody:rgba(18,10,45,0.72);
+  --bottleNeck:rgba(18,10,45,0.78);
+  --bottleStroke:rgba(140,100,255,0.28);
+}
+body{
+  background:radial-gradient(ellipse at center,#0d0520,#000);
+  display:flex;justify-content:center;align-items:center;
+  min-height:100vh;overflow:hidden;font-family:'Cinzel',serif;
+}
+#gc{
+  position:relative;width:420px;height:780px;overflow:hidden;
+  border-radius:18px;
+  box-shadow:0 0 80px var(--themeGlow),0 0 160px rgba(100,0,200,0.2),
+             inset 0 0 30px rgba(0,0,0,0.5);
+  transition:box-shadow 0.5s;
+}
+canvas{position:absolute;inset:0;z-index:0;}
+#fxCanvas{z-index:55;pointer-events:none;}
+.page{position:absolute;inset:0;z-index:10;display:none;flex-direction:column;overflow:hidden;}
+.page.active{display:flex;}
+#adBannerBottom{
+  position:absolute;bottom:0;left:0;right:0;height:56px;z-index:200;
+  background:rgba(0,0,0,0.95);border-top:1px solid rgba(255,215,0,0.12);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.adLabel{position:absolute;top:2px;left:6px;font-size:7px;color:rgba(255,255,255,0.25);letter-spacing:1px;}
+.adsbygoogle{display:block;width:320px;height:50px;}
+#adModal{
+  position:absolute;inset:0;z-index:500;display:none;flex-direction:column;
+  align-items:center;justify-content:center;background:rgba(0,0,0,0.95);padding:20px;
+}
+#adModal.open{display:flex;}
+.adBox{
+  width:100%;max-width:360px;
+  background:linear-gradient(135deg,rgba(15,8,40,0.99),rgba(8,4,25,0.99));
+  border:1px solid rgba(255,215,0,0.3);border-radius:20px;overflow:hidden;
+}
+.adVideo{
+  width:100%;height:200px;background:#050010;
+  position:relative;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.adBar{position:absolute;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--themeA),var(--themeB),var(--gem));width:0%;transition:width 0.1s;}
+.adCountdown{position:absolute;top:10px;right:12px;background:rgba(0,0,0,0.7);color:#fff;font-size:12px;padding:4px 10px;border-radius:20px;}
+.adSkip{position:absolute;bottom:12px;right:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;font-size:11px;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:'Cinzel',serif;display:none;transition:all 0.2s;}
+.adSkip.show{display:block;}
+.adSkip:hover{background:rgba(255,255,255,0.3);}
+.adLogo{font-size:52px;animation:adFloat 2s ease-in-out infinite;}
+@keyframes adFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.adName{color:rgba(255,255,255,0.75);font-size:14px;margin-top:8px;letter-spacing:2px;}
+.adTag{color:rgba(255,255,255,0.4);font-size:10px;margin-top:4px;letter-spacing:1px;}
+
+/* Real ad container inside modal */
+#realAdContainer{
+  position:absolute;inset:0;z-index:10;
+  display:none;
+  background:#000;
+}
+#realAdContainer.active{display:block;}
+
+.adBody{padding:18px;}
+.adTitle{font-size:13px;color:var(--gold);letter-spacing:2px;margin-bottom:12px;text-align:center;}
+.adItems{display:flex;justify-content:center;gap:14px;margin-bottom:14px;}
+.adItem{background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.18);border-radius:10px;padding:10px 14px;text-align:center;}
+.adItemIcon{font-size:26px;margin-bottom:4px;}
+.adItemAmt{font-size:13px;color:var(--gold);font-weight:700;}
+.adItemLbl{font-size:8px;color:rgba(200,150,255,0.55);margin-top:2px;letter-spacing:1px;}
+.adWatchBtn{width:100%;padding:14px;background:linear-gradient(135deg,var(--themeA),var(--themeB));border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;font-family:'Cinzel',serif;cursor:pointer;letter-spacing:2px;transition:all 0.2s;box-shadow:0 0 20px rgba(150,0,255,0.4);}
+.adWatchBtn:hover{box-shadow:0 0 35px rgba(150,0,255,0.7);}
+.adCancelBtn{width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.45);font-size:11px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:1px;}
+.adStatusMsg{font-size:11px;color:rgba(0,200,255,0.7);text-align:center;margin-top:8px;letter-spacing:1px;min-height:20px;}
+
+/* REST OF YOUR CSS UNCHANGED */
+.topBar{flex-shrink:0;height:66px;background:linear-gradient(180deg,rgba(6,3,20,0.98),rgba(18,8,42,0.95));border-bottom:1px solid rgba(255,215,0,0.18);display:flex;align-items:center;justify-content:space-between;padding:0 14px;z-index:15;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.currRow{display:flex;align-items:center;gap:8px;}
+.chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.22);border-radius:20px;padding:5px 11px;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
+.chip:hover{border-color:var(--gold);background:rgba(255,215,0,0.08);}
+.chip .ci{font-size:16px;}
+.chip .cv{font-size:14px;color:var(--gold);font-weight:700;text-shadow:0 0 8px var(--gold);}
+.chip .cp{font-size:10px;color:rgba(255,215,0,0.45);margin-left:2px;}
+.chipGem .cv{color:var(--gem);text-shadow:0 0 8px var(--gem);}
+.chipGem{border-color:rgba(0,212,255,0.22);}
+.chipGem:hover{border-color:var(--gem);}
+.iconBtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,215,0,0.18);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
+.iconBtn:hover,.iconBtn:active{background:rgba(255,215,0,0.1);border-color:var(--gold);}
+.pageTitle{font-size:15px;color:var(--gold);letter-spacing:3px;text-shadow:0 0 10px var(--gold);}
+.btn{padding:13px 28px;font-family:'Cinzel',serif;font-weight:700;border:none;border-radius:12px;cursor:pointer;letter-spacing:2px;transition:all 0.2s;font-size:14px;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;}
+.btn:active::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0.1);}
+.btnPrimary{background:linear-gradient(135deg,var(--themeA),var(--themeB),var(--themeC));color:#fff;box-shadow:0 0 18px var(--themeGlow);}
+.btnPrimary:hover{box-shadow:0 0 32px var(--themeGlow);transform:translateY(-1px);}
+.btnGold{background:linear-gradient(135deg,#996600,#ffd700,#cc9900);color:#000;box-shadow:0 0 15px rgba(255,215,0,0.3);}
+.btnGold:hover{box-shadow:0 0 28px rgba(255,215,0,0.6);transform:translateY(-1px);}
+.btnGhost{background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.18);color:rgba(255,215,0,0.7);font-size:12px;padding:9px 18px;}
+.btnGhost:hover{border-color:var(--gold);background:rgba(255,215,0,0.07);}
+.btnAd{background:linear-gradient(135deg,#003380,#0055cc,#0077ff);color:#fff;box-shadow:0 0 12px rgba(0,80,255,0.25);font-size:12px;padding:9px 16px;display:flex;align-items:center;gap:6px;justify-content:center;}
+.btnAdGreen{background:linear-gradient(135deg,#004400,#00aa44,#00ff66);color:#fff;}
+#notif{position:absolute;top:76px;left:50%;transform:translateX(-50%) translateY(-15px);background:linear-gradient(135deg,rgba(20,8,50,0.98),rgba(50,8,70,0.98));border:1px solid rgba(255,215,0,0.32);border-radius:14px;padding:12px 24px;text-align:center;z-index:300;pointer-events:none;opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);min-width:200px;box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+#notif.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#notifT{font-size:15px;color:#fff;letter-spacing:1px;}
+#notifS{font-size:10px;color:rgba(200,150,255,0.7);margin-top:3px;letter-spacing:2px;}
+#flash{position:absolute;inset:0;z-index:60;pointer-events:none;opacity:0;transition:opacity 0.15s;}
+#homePage .hScroll{flex:1;overflow-y:auto;padding:14px 16px 70px;scrollbar-width:none;}
+#homePage .hScroll::-webkit-scrollbar{display:none;}
+.gameTitle{font-size:42px;background:linear-gradient(135deg,var(--themeC) 0%,var(--themeB) 50%,var(--themeA) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;letter-spacing:4px;line-height:1.1;margin-bottom:4px;}
+.gameSub{font-size:10px;color:rgba(200,150,255,0.6);letter-spacing:6px;text-align:center;margin-bottom:20px;}
+.heroStats{display:flex;gap:8px;margin-bottom:18px;}
+.hStat{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.1);border-radius:10px;padding:10px 6px;text-align:center;}
+.hsV{font-size:20px;color:#fff;font-weight:700;}
+.hsL{font-size:8px;color:rgba(255,215,0,0.45);letter-spacing:2px;margin-top:2px;}
+.menuGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.mCard{background:linear-gradient(135deg,rgba(35,15,75,0.95),rgba(18,8,48,0.98));border:1px solid rgba(180,100,255,0.18);border-radius:16px;padding:18px 12px;text-align:center;cursor:pointer;transition:all 0.25s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;}
+.mCard:hover,.mCard:active{border-color:rgba(255,215,0,0.45);transform:translateY(-3px);box-shadow:0 10px 28px rgba(120,0,255,0.32);}
+.mCardDaily{background:linear-gradient(135deg,rgba(0,55,95,0.9),rgba(0,28,58,0.95));border-color:rgba(0,200,255,0.22);}
+.mCardDaily:hover{border-color:var(--gem);box-shadow:0 10px 28px rgba(0,150,255,0.28);}
+.mCardWide{grid-column:1/-1;}
+.mcBadge{position:absolute;top:7px;right:7px;background:linear-gradient(135deg,var(--themeC),var(--themeA));color:#fff;font-size:8px;padding:2px 7px;border-radius:10px;letter-spacing:1px;}
+.mcIcon{font-size:36px;margin-bottom:8px;line-height:1;}
+.mcLabel{font-size:11px;color:rgba(255,215,0,0.88);letter-spacing:2px;}
+.mcSub{font-size:9px;color:rgba(200,150,255,0.5);margin-top:3px;letter-spacing:1px;}
+.mcDailySub{color:rgba(0,200,255,0.6);}
+.adStrip{background:linear-gradient(135deg,rgba(0,35,75,0.8),rgba(0,18,50,0.9));border:1px solid rgba(0,150,255,0.22);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s;margin-bottom:10px;-webkit-tap-highlight-color:transparent;}
+.adStrip:hover{border-color:rgba(0,200,255,0.5);transform:scale(1.01);}
+.asLeft{display:flex;align-items:center;gap:8px;flex:1;}
+.asIcon{font-size:24px;}
+.asTitle{font-size:11px;color:#fff;letter-spacing:1px;}
+.asSub{font-size:9px;color:rgba(0,200,255,0.55);margin-top:2px;letter-spacing:1px;}
+.asRewards{display:flex;gap:6px;}
+.asR{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.18);border-radius:7px;padding:4px 9px;font-size:12px;color:var(--gold);font-weight:700;}
+#mapPage .mScroll{flex:1;overflow-y:auto;padding:12px 16px 70px;scrollbar-width:thin;scrollbar-color:rgba(120,0,255,0.35) transparent;}
+.worldBlock{margin-bottom:10px;}
+.worldHdr{background:linear-gradient(135deg,rgba(22,10,55,0.95),rgba(12,5,38,0.98));border:1px solid rgba(255,215,0,0.15);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.whEm{font-size:30px;}
+.whInfo{flex:1;}
+.whName{font-size:13px;color:var(--gold);letter-spacing:3px;}
+.whSub{font-size:9px;color:rgba(200,150,255,0.5);margin-top:3px;letter-spacing:2px;}
+.whProg{background:rgba(255,255,255,0.07);border-radius:4px;height:5px;margin-top:6px;overflow:hidden;}
+.whProgF{height:100%;background:linear-gradient(90deg,var(--themeA),var(--gem));border-radius:4px;transition:width 0.5s;}
+.lvlGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:14px;}
+.lvlNode{aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;-webkit-tap-highlight-color:transparent;font-size:13px;font-weight:700;}
+.lvlLocked{background:rgba(28,18,48,0.8);border:2px solid rgba(70,50,110,0.28);color:rgba(110,90,150,0.38);cursor:not-allowed;}
+.lvlAvail{background:linear-gradient(135deg,rgba(65,18,145,0.9),rgba(38,8,98,0.95));border:2px solid rgba(120,0,255,0.55);color:#fff;box-shadow:0 0 12px rgba(100,0,255,0.32);}
+.lvlAvail:hover,.lvlAvail:active{transform:scale(1.18);box-shadow:0 0 24px rgba(150,0,255,0.65);}
+.lvlDone{background:linear-gradient(135deg,rgba(12,65,12,0.9),rgba(6,42,6,0.95));border:2px solid rgba(0,200,80,0.55);color:#aaffcc;box-shadow:0 0 9px rgba(0,180,80,0.28);}
+.lvlDone:hover{transform:scale(1.12);box-shadow:0 0 20px rgba(0,200,80,0.55);}
+.lvlBoss{background:linear-gradient(135deg,rgba(115,0,0,0.9),rgba(65,0,0,0.95));border:2px solid rgba(255,0,0,0.55);box-shadow:0 0 14px rgba(255,0,0,0.38);animation:bossPulse 2s infinite;}
+@keyframes bossPulse{0%,100%{box-shadow:0 0 14px rgba(255,0,0,0.38);}50%{box-shadow:0 0 28px rgba(255,0,0,0.75);}}
+.lvlCurrent{border-color:var(--gold)!important;box-shadow:0 0 18px rgba(255,215,0,0.55)!important;animation:curPulse 1.5s infinite;}
+@keyframes curPulse{0%,100%{box-shadow:0 0 18px rgba(255,215,0,0.55);}50%{box-shadow:0 0 32px rgba(255,215,0,0.88);}}
+.lvlStars{font-size:7px;margin-top:1px;color:var(--gold);}
+.wLockOverlay{background:rgba(0,0,0,0.45);border-radius:10px;padding:10px;text-align:center;margin-bottom:12px;}
+.wloT{font-size:10px;color:rgba(200,150,255,0.55);letter-spacing:2px;margin-bottom:8px;}
+#dailyPage .dScroll{flex:1;overflow-y:auto;padding:12px 16px 70px;scrollbar-width:none;}
+#dailyPage .dScroll::-webkit-scrollbar{display:none;}
+.dHeroCard{background:linear-gradient(135deg,rgba(0,48,96,0.95),rgba(0,24,58,0.98));border:1px solid rgba(0,200,255,0.22);border-radius:18px;padding:20px;text-align:center;margin-bottom:12px;}
+.dhTitle{font-size:24px;color:var(--gem);letter-spacing:4px;text-shadow:0 0 18px var(--gem);margin-bottom:4px;}
+.dhDate{font-size:10px;color:rgba(0,200,255,0.48);letter-spacing:3px;margin-bottom:12px;}
+.dhCd{display:inline-block;background:rgba(0,100,150,0.28);border:1px solid rgba(0,200,255,0.18);border-radius:10px;padding:10px 22px;margin-bottom:10px;}
+.dhCdL{font-size:8px;color:rgba(0,200,255,0.5);letter-spacing:3px;}
+.dhCdT{font-size:26px;color:var(--gem);font-weight:700;text-shadow:0 0 12px var(--gem);}
+.streakCard{background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.1);border-radius:14px;padding:14px;margin-bottom:10px;}
+.scTitle{font-size:10px;color:rgba(255,215,0,0.5);letter-spacing:3px;margin-bottom:10px;}
+.streakRow{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;}
+.sDay{width:42px;height:42px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(255,215,0,0.12);background:rgba(0,0,0,0.28);}
+.sDay.done{background:rgba(0,200,100,0.14);border-color:rgba(0,200,100,0.38);}
+.sDay.today{background:rgba(255,215,0,0.1);border-color:rgba(255,215,0,0.48);animation:strPulse 1.5s infinite;}
+@keyframes strPulse{0%,100%{box-shadow:0 0 7px rgba(255,215,0,0.38);}50%{box-shadow:0 0 18px rgba(255,215,0,0.75);}}
+.sdI{font-size:15px;}.sdL{font-size:7px;color:rgba(200,150,255,0.45);margin-top:2px;letter-spacing:1px;}
+.rwCard{background:rgba(255,255,255,0.02);border:1px solid rgba(0,200,255,0.12);border-radius:14px;padding:14px;margin-bottom:10px;}
+.rcT{font-size:10px;color:rgba(0,200,255,0.5);letter-spacing:3px;margin-bottom:10px;}
+.rwRow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.rwRow:last-child{border-bottom:none;}
+.rrIco{font-size:24px;width:30px;text-align:center;}
+.rrInf{flex:1;}
+.rrN{font-size:11px;color:#fff;letter-spacing:1px;}
+.rrA{font-size:9px;color:rgba(200,150,255,0.5);margin-top:2px;}
+.rrS{font-size:17px;}
+#shopPage .sTabs{display:flex;gap:6px;padding:10px 14px 0;flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+#shopPage .sTabs::-webkit-scrollbar{display:none;}
+.sTab{padding:8px 15px;border-radius:20px;font-size:10px;color:rgba(200,150,255,0.55);border:1px solid rgba(180,100,255,0.18);cursor:pointer;white-space:nowrap;transition:all 0.2s;letter-spacing:1px;-webkit-tap-highlight-color:transparent;flex-shrink:0;}
+.sTab.active{background:linear-gradient(135deg,rgba(100,0,200,0.55),rgba(48,0,148,0.78));border-color:rgba(200,100,255,0.55);color:#fff;box-shadow:0 0 10px rgba(150,0,255,0.35);}
+#shopPage .sScroll{flex:1;overflow-y:auto;padding:10px 14px 70px;scrollbar-width:thin;scrollbar-color:rgba(120,0,255,0.35) transparent;}
+.siCard{background:linear-gradient(135deg,rgba(22,10,55,0.97),rgba(12,6,36,0.99));border:1px solid rgba(150,75,255,0.18);border-radius:14px;padding:14px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;position:relative;-webkit-tap-highlight-color:transparent;}
+.siCard:hover,.siCard:active{border-color:rgba(255,215,0,0.38);box-shadow:0 6px 18px rgba(100,0,255,0.22);transform:translateX(2px);}
+.siCard.siOwned{border-color:rgba(0,200,80,0.35);background:linear-gradient(135deg,rgba(7,32,12,0.97),rgba(4,20,8,0.99));}
+.siCard.siEquipped{border-color:var(--gold);box-shadow:0 0 14px rgba(255,215,0,0.28);}
+.siCard.siFeatured{border-color:rgba(255,90,0,0.45);}
+.siIcon{font-size:42px;flex-shrink:0;width:50px;text-align:center;}
+.siPreview{width:50px;height:70px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);border-radius:8px;overflow:hidden;}
+.siPreview svg{width:100%;height:100%;}
+.siInfo{flex:1;min-width:0;}
+.siName{font-size:12px;color:#fff;letter-spacing:1px;margin-bottom:2px;}
+.siDesc{font-size:9px;color:rgba(200,150,255,0.5);line-height:1.4;margin-bottom:7px;}
+.siTags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;}
+.siTag{font-size:7px;padding:2px 6px;border-radius:8px;letter-spacing:1px;}
+.tagNEW{background:rgba(255,40,0,0.18);color:#ff6644;border:1px solid rgba(255,40,0,0.28);}
+.tagHOT{background:rgba(255,140,0,0.18);color:#ffaa44;border:1px solid rgba(255,140,0,0.28);}
+.tagSALE{background:rgba(0,200,80,0.18);color:#44ff88;border:1px solid rgba(0,200,80,0.28);}
+.tagLIMITED{background:rgba(200,0,200,0.18);color:#ff44ff;border:1px solid rgba(200,0,200,0.28);}
+.siBottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.siPrice{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;}
+.siPrice.gold{color:var(--gold);}
+.siPrice.gem{color:var(--gem);}
+.siAdBtn{display:flex;align-items:center;gap:4px;font-size:9px;background:rgba(0,100,200,0.18);border:1px solid rgba(0,150,255,0.28);color:rgba(0,200,255,0.88);padding:4px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:'Cinzel',serif;letter-spacing:1px;}
+.siAdBtn:hover{background:rgba(0,100,200,0.32);}
+.siOwnTag{position:absolute;top:8px;right:10px;font-size:8px;padding:2px 7px;border-radius:8px;letter-spacing:1px;}
+.ownGrn{background:rgba(0,200,80,0.13);color:#44ff88;border:1px solid rgba(0,200,80,0.18);}
+.ownGold{background:rgba(255,215,0,0.13);color:var(--gold);border:1px solid rgba(255,215,0,0.22);}
+.equipBtn{padding:6px 14px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;border-radius:8px;cursor:pointer;letter-spacing:1px;transition:all 0.2s;border:none;background:linear-gradient(135deg,var(--themeA),var(--themeB));color:#fff;}
+.equipBtn:hover{opacity:0.85;}
+.equipBtn.equipped{background:linear-gradient(135deg,#336600,#66cc00);cursor:default;}
+.cpCard{background:linear-gradient(135deg,rgba(14,55,14,0.95),rgba(8,38,8,0.98));border:1px solid rgba(0,200,80,0.22);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.2s;margin-bottom:8px;position:relative;-webkit-tap-highlight-color:transparent;}
+.cpCard:hover{border-color:var(--gold);transform:scale(1.02);}
+.cpCard.cpBest{border-color:rgba(255,140,0,0.45);background:linear-gradient(135deg,rgba(38,22,4,0.98),rgba(22,12,2,0.99));}
+.cpBestTag{position:absolute;top:-1px;right:14px;background:linear-gradient(135deg,#ff6600,#ffcc00);color:#000;font-size:8px;font-weight:700;padding:3px 10px;border-radius:0 0 8px 8px;letter-spacing:1px;}
+.cpIco{font-size:34px;flex-shrink:0;}
+.cpInf{flex:1;}
+.cpN{font-size:12px;color:#fff;letter-spacing:1px;}
+.cpA{font-size:11px;color:rgba(0,220,100,0.65);margin-top:2px;}
+.cpP{font-size:15px;font-weight:700;color:var(--gold);}
+#gamePage{flex-direction:column;}
+.gTopBar{flex-shrink:0;height:60px;background:linear-gradient(180deg,rgba(6,3,20,0.98),rgba(15,7,38,0.95));border-bottom:1px solid rgba(255,215,0,0.12);display:flex;align-items:center;padding:0 10px;gap:6px;box-shadow:0 3px 14px rgba(0,0,0,0.5);z-index:5;}
+.gSBox{flex:1;display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:5px 4px;}
+.gSL{font-size:8px;color:rgba(255,215,0,0.42);letter-spacing:1.5px;}
+.gSV{font-size:15px;color:#fff;font-weight:700;}
+.gBackBtn{width:34px;height:34px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,215,0,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;flex-shrink:0;transition:all 0.2s;-webkit-tap-highlight-color:transparent;}
+.gBackBtn:hover{background:rgba(255,215,0,0.09);}
+#gProgWrap{flex-shrink:0;height:4px;background:rgba(255,255,255,0.04);}
+#gProgBar{height:100%;background:linear-gradient(90deg,var(--themeA),var(--themeB),var(--gem));transition:width 0.5s ease;width:0%;box-shadow:0 0 7px rgba(150,0,255,0.6);}
+.gInfoBar{flex-shrink:0;height:28px;background:rgba(0,0,0,0.4);border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;gap:18px;}
+.giBdg{font-size:10px;color:rgba(200,180,255,0.6);letter-spacing:1px;}
+.giBdg span{color:#fff;font-weight:700;}
+#bottleArea{flex:1;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;align-content:center;gap:10px;padding:8px 12px;overflow:hidden;}
+.bottle{position:relative;cursor:pointer;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5));user-select:none;-webkit-tap-highlight-color:transparent;}
+.bottle:hover{transform:translateY(-4px) scale(1.04);}
+.bottle.selected{transform:translateY(-20px) scale(1.1);filter:drop-shadow(0 0 20px rgba(255,255,100,0.9)) drop-shadow(0 8px 14px rgba(0,0,0,0.6));}
+.bottle.hint-glow{animation:hGlow 0.8s infinite alternate;}
+@keyframes hGlow{from{filter:drop-shadow(0 0 10px rgba(0,255,200,0.65));}to{filter:drop-shadow(0 0 24px rgba(0,255,200,0.98));}}
+.bottle.shake{animation:bShk 0.4s;}
+@keyframes bShk{0%,100%{transform:translateX(0);}20%{transform:translateX(-7px);}40%{transform:translateX(7px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+.bottle.exploding{animation:bExp 0.65s forwards;}
+@keyframes bExp{0%{transform:scale(1);opacity:1;}25%{transform:scale(1.5) rotate(12deg);}50%{transform:scale(0.9) rotate(-18deg);opacity:0.6;}100%{transform:scale(0);opacity:0;}}
+#gBotBar{flex-shrink:0;height:66px;background:linear-gradient(0deg,rgba(6,3,20,0.98),rgba(15,7,38,0.95));border-top:1px solid rgba(255,215,0,0.1);display:flex;align-items:center;justify-content:space-around;padding:0 6px;}
+.gBtn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.13);border-radius:10px;cursor:pointer;transition:all 0.2s;min-width:50px;-webkit-tap-highlight-color:transparent;}
+.gBtn:hover,.gBtn:active{background:rgba(255,215,0,0.09);border-color:rgba(255,215,0,0.38);}
+.gBtn.disabled{opacity:0.25;pointer-events:none;}
+.gBtnI{font-size:19px;}
+.gBtnL{font-size:7px;color:rgba(255,215,0,0.5);letter-spacing:1px;}
+.gBtnC{font-size:10px;color:var(--gold);font-weight:700;background:rgba(255,215,0,0.1);border-radius:5px;padding:1px 5px;margin-top:-1px;}
+#winOverlay{position:absolute;inset:0;z-index:160;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse,rgba(22,7,52,0.97),rgba(5,2,18,0.99));padding:22px;}
+.woTrophy{font-size:60px;margin-bottom:6px;animation:tBounce 0.6s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes tBounce{from{transform:scale(0) rotate(-15deg);}to{transform:scale(1) rotate(0deg);}}
+.woTitle{font-size:38px;background:linear-gradient(135deg,var(--themeC),var(--themeB),var(--themeA));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:4px;margin-bottom:6px;}
+.woStars{font-size:32px;letter-spacing:8px;margin-bottom:12px;}
+.woBox{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.12);border-radius:14px;padding:12px 18px;margin-bottom:14px;}
+.woRow{display:flex;justify-content:space-between;font-size:12px;color:rgba(200,180,255,0.75);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.woRow:last-child{border-bottom:none;}
+.woRow span:last-child{color:var(--gold);font-weight:700;}
+.dblBtn{width:100%;padding:13px;margin-bottom:10px;background:linear-gradient(135deg,rgba(0,70,150,0.9),rgba(0,110,220,0.9));border:1px solid rgba(0,200,255,0.35);border-radius:12px;color:#fff;font-size:13px;font-weight:700;font-family:'Cinzel',serif;cursor:pointer;letter-spacing:1px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.dblBtn:hover{box-shadow:0 0 22px rgba(0,150,255,0.45);}
+.modal{position:absolute;inset:0;z-index:180;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.84);padding:20px;}
+.modal.open{display:flex;}
+.mBox{width:100%;max-width:340px;background:linear-gradient(135deg,rgba(16,7,42,0.99),rgba(9,4,26,0.99));border:1px solid rgba(255,215,0,0.22);border-radius:18px;padding:22px;text-align:center;box-shadow:0 20px 55px rgba(0,0,0,0.8);}
+.mTitle{font-size:19px;color:var(--gold);letter-spacing:3px;margin-bottom:4px;}
+.mSub{font-size:10px;color:rgba(200,150,255,0.55);letter-spacing:3px;margin-bottom:16px;}
+.mBtns{display:flex;flex-direction:column;gap:8px;}
+.floatTxt{position:absolute;font-family:'Cinzel',serif;font-weight:700;pointer-events:none;z-index:80;animation:fUp 1.3s forwards;white-space:nowrap;}
+@keyframes fUp{0%{transform:translateY(0) scale(0.7);opacity:1;}65%{transform:translateY(-60px) scale(1.12);opacity:1;}100%{transform:translateY(-90px) scale(1);opacity:0;}}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(120,0,255,0.32);border-radius:2px;}
+</style>
+</head>
+<body>
+<div id="gc">
+<canvas id="bgCanvas" width="420" height="780"></canvas>
+<canvas id="fxCanvas" width="420" height="780"></canvas>
+<div id="flash"></div>
+<div id="notif"><div id="notifT"></div><div id="notifS"></div></div>
+
+<!-- BANNER AD -->
+<div id="adBannerBottom">
+  <span class="adLabel">AD</span>
+  <!-- REPLACE WITH YOUR REAL IDs -->
+  <ins class="adsbygoogle"
+       style="display:inline-block;width:320px;height:50px"
+       data-ad-client="ca-pub-3940256099942544"
+       data-ad-slot="6300978111"></ins>
+</div>
+
+<!-- REWARDED AD MODAL -->
+<div id="adModal">
+  <div class="adBox">
+    <div class="adVideo">
+      <!-- Real ad container — shown in native app -->
+      <div id="realAdContainer"></div>
+      <!-- Simulated ad — shown in browser -->
+      <div class="adBar" id="adBar"></div>
+      <div class="adCountdown" id="adCountdown">:30</div>
+      <div class="adLogo" id="adLogo" style="display:none;">🎮</div>
+      <div class="adName" id="adName">Tap WATCH AD below</div>
+      <div class="adTag" id="adTag">Advertisement · Earn rewards</div>
+      <button class="adSkip" id="adSkip" onclick="skipAd()">Skip ▶</button>
+    </div>
+    <div class="adBody">
+      <div class="adTitle">🎁 WATCH TO EARN</div>
+      <div class="adItems" id="adItems"></div>
+      <button class="adWatchBtn" id="adWatchBtn" onclick="startAd()">
+        📺 WATCH AD · EARN REWARD
+      </button>
+      <div class="adStatusMsg" id="adStatusMsg"></div>
+      <button class="adCancelBtn" onclick="closeAd()">No thanks</button>
+    </div>
+  </div>
+</div>
+
+<!-- YOUR HTML UNCHANGED FROM HERE -->
+<div class="page active" id="homePage">
+  <div class="topBar">
+    <div class="currRow">
+      <div class="chip" onclick="showAd('coins')"><span class="ci">🪙</span><span class="cv" id="hC">500</span><span class="cp">+</span></div>
+      <div class="chip chipGem" onclick="showAd('gems')"><span class="ci">💎</span><span class="cv" id="hG">10</span><span class="cp">+</span></div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <div class="iconBtn" onclick="goShop()">🛍️</div>
+      <div class="iconBtn" onclick="openStats()">📊</div>
+    </div>
+  </div>
+  <div class="hScroll">
+    <div style="height:10px;"></div>
+    <div class="gameTitle" id="homeTitle">🧙‍♂️<br>POTION<br>SORT</div>
+    <div class="gameSub">COMPLETE EDITION</div>
+    <div class="heroStats">
+      <div class="hStat"><div class="hsV" id="hLvl">1</div><div class="hsL">LEVEL</div></div>
+      <div class="hStat"><div class="hsV" id="hSc">0</div><div class="hsL">SCORE</div></div>
+      <div class="hStat"><div class="hsV" id="hStr">0🔥</div><div class="hsL">STREAK</div></div>
+      <div class="hStat"><div class="hsV" id="hSol">0</div><div class="hsL">SOLVED</div></div>
+    </div>
+    <div class="adStrip" onclick="showAd('coins')">
+      <div class="asLeft"><div class="asIcon">📺</div><div><div class="asTitle">FREE AD REWARD</div><div class="asSub">Watch to earn coins & gems</div></div></div>
+      <div class="asRewards"><div class="asR">🪙200</div><div class="asR">💎1</div></div>
+    </div>
+    <div class="menuGrid">
+      <div class="mCard" onclick="openPage('mapPage')">
+        <div class="mcBadge" id="hLvlBadge">LVL 1</div>
+        <div class="mcIcon">🗺️</div><div class="mcLabel">ADVENTURE</div><div class="mcSub">50 levels · 5 worlds</div>
+      </div>
+      <div class="mCard mCardDaily" onclick="openPage('dailyPage')">
+        <div class="mcIcon">🌙</div><div class="mcLabel" style="color:rgba(0,220,255,0.88);">DAILY SPELL</div>
+        <div class="mcSub mcDailySub" id="hDailyS">Play today's puzzle</div>
+      </div>
+      <div class="mCard mCardWide" onclick="quickPlay()">
+        <div class="mcIcon">⚡</div><div class="mcLabel">QUICK PLAY</div><div class="mcSub">Jump straight into the action</div>
+      </div>
+      <div class="mCard" onclick="goShop()">
+        <div class="mcIcon">🛍️</div><div class="mcLabel">WIZARD SHOP</div><div class="mcSub">Skins · Themes · Power-ups</div>
+      </div>
+      <div class="mCard" onclick="openPage('dailyPage')">
+        <div class="mcIcon">🎁</div><div class="mcLabel">DAILY BONUS</div><div class="mcSub" id="hStreakS">Streak: 0 days</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="mapPage">
+  <div class="topBar">
+    <div class="iconBtn" onclick="openPage('homePage')">◀</div>
+    <div class="pageTitle">🗺️ ADVENTURE MAP</div>
+    <div class="chip"><span class="ci">🪙</span><span class="cv" id="mapC">500</span></div>
+  </div>
+  <div class="mScroll" id="mapScroll"></div>
+</div>
+
+<div class="page" id="dailyPage">
+  <div class="topBar">
+    <div class="iconBtn" onclick="openPage('homePage')">◀</div>
+    <div class="pageTitle">🌙 DAILY SPELL</div>
+    <div class="chip chipGem"><span class="ci">💎</span><span class="cv" id="dailyG">10</span></div>
+  </div>
+  <div class="dScroll">
+    <div class="dHeroCard">
+      <div class="dhTitle">✨ TODAY'S SPELL</div>
+      <div class="dhDate" id="dhDate"></div>
+      <div class="dhCd"><div class="dhCdL">RESETS IN</div><div class="dhCdT" id="dhCdT">23:59:59</div></div>
+    </div>
+    <div class="streakCard">
+      <div class="scTitle">🔥 WIZARD STREAK</div>
+      <div class="streakRow" id="streakRow"></div>
+    </div>
+    <div class="rwCard">
+      <div class="rcT">🎁 TODAY'S REWARDS</div>
+      <div class="rwRow"><div class="rrIco">🪙</div><div class="rrInf"><div class="rrN">Gold Coins</div><div class="rrA">+400 on completion</div></div><div class="rrS" id="dR1">⬜</div></div>
+      <div class="rwRow"><div class="rrIco">💎</div><div class="rrInf"><div class="rrN">Magic Gem</div><div class="rrA">+2 gems (no explosions)</div></div><div class="rrS" id="dR2">⬜</div></div>
+      <div class="rwRow"><div class="rrIco">⭐</div><div class="rrInf"><div class="rrN">Streak Bonus</div><div class="rrA">+100 per streak day</div></div><div class="rrS" id="dR3">⬜</div></div>
+    </div>
+    <div class="adStrip" onclick="showAd('dailyDouble')" style="margin-bottom:12px;">
+      <div class="asLeft"><div class="asIcon">📺</div><div><div class="asTitle">WATCH AD · DOUBLE REWARD</div><div class="asSub">2× coins + 2× gems today</div></div></div>
+    </div>
+    <button class="btn btnPrimary" id="playDailyBtn" onclick="launchDaily()" style="width:100%;margin-bottom:8px;">✨ PLAY TODAY'S SPELL</button>
+    <div id="dailyDoneMsg" style="display:none;text-align:center;padding:16px 0;">
+      <div style="font-size:44px;">🏆</div>
+      <div style="font-size:13px;color:var(--gold);letter-spacing:2px;margin-top:6px;">COMPLETED TODAY!</div>
+      <div style="font-size:10px;color:rgba(200,150,255,0.45);margin-top:4px;letter-spacing:1px;">Come back tomorrow</div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="shopPage">
+  <div class="topBar">
+    <div class="iconBtn" onclick="openPage('homePage')">◀</div>
+    <div class="pageTitle">🛍️ WIZARD SHOP</div>
+    <div style="display:flex;gap:6px;">
+      <div class="chip"><span class="ci">🪙</span><span class="cv" id="shopC">500</span></div>
+      <div class="chip chipGem"><span class="ci">💎</span><span class="cv" id="shopG">10</span></div>
+    </div>
+  </div>
+  <div class="sTabs" id="shopTabs"></div>
+  <div class="sScroll" id="shopScroll"></div>
+</div>
+
+<div class="page" id="gamePage">
+  <div class="gTopBar">
+    <div class="gBackBtn" onclick="pauseGame()">⏸</div>
+    <div class="gSBox"><div class="gSL">SCORE</div><div class="gSV" id="gScore">0</div></div>
+    <div class="gSBox"><div class="gSL">LEVEL</div><div class="gSV" id="gLvlV">1</div></div>
+    <div class="gSBox"><div class="gSL">MOVES</div><div class="gSV" id="gMovV">0</div></div>
+    <div class="gSBox" onclick="showAd('coins')" style="cursor:pointer;">
+      <div class="gSL">COINS</div><div class="gSV" style="color:var(--gold);font-size:12px;" id="gCoinV">500🪙</div>
+    </div>
+  </div>
+  <div id="gProgWrap"><div id="gProgBar"></div></div>
+  <div class="gInfoBar">
+    <div class="giBdg">💥 <span id="gExpV">0</span></div>
+    <div class="giBdg">↩️ <span id="gUndV">3</span> left</div>
+    <div class="giBdg">🫙 <span id="gFlaV">2</span> flasks</div>
+    <div class="giBdg" id="gShldBdg" style="display:none;">🛡️ SHIELD</div>
+  </div>
+  <div id="bottleArea"></div>
+  <div id="gBotBar">
+    <div class="gBtn" id="gUndoBtn" onclick="undoMove()">
+      <div class="gBtnI">↩️</div><div class="gBtnL">UNDO</div><div class="gBtnC" id="gUndoCnt">3</div>
+    </div>
+    <div class="gBtn" id="gHintBtn" onclick="showHint()">
+      <div class="gBtnI">💡</div><div class="gBtnL">HINT</div>
+    </div>
+    <div class="gBtn" id="gFlaskBtn" onclick="addFlask()">
+      <div class="gBtnI">🫙</div><div class="gBtnL">FLASK</div><div class="gBtnC" id="gFlaskCnt">2</div>
+    </div>
+    <div class="gBtn" id="gShufBtn" onclick="shufflePotions()">
+      <div class="gBtnI">🔀</div><div class="gBtnL">SHUFFLE</div><div class="gBtnC" id="gShufCnt">1</div>
+    </div>
+    <div class="gBtn" onclick="showAd('hint')">
+      <div class="gBtnI">📺</div><div class="gBtnL">AD+HINT</div>
+    </div>
+  </div>
+
+  <div id="winOverlay">
+    <div class="woTrophy">🏆</div>
+    <div class="woTitle">SORTED!</div>
+    <div class="woStars" id="woStars">⭐⭐⭐</div>
+    <div class="woBox" id="woBox"></div>
+    <button class="dblBtn" onclick="showAd('double')">📺 WATCH AD · DOUBLE COINS & GEMS</button>
+    <button class="btn btnPrimary" id="nextBtn" onclick="nextLevel()" style="width:230px;margin-bottom:8px;">➡️ NEXT LEVEL</button>
+    <button class="btn btnGhost" onclick="replayLevel()" style="width:230px;margin-bottom:6px;">🔄 REPLAY</button>
+    <button class="btn btnGhost" onclick="openPage('mapPage')" style="width:230px;">🗺️ MAP</button>
+  </div>
+
+  <div class="modal" id="pauseModal">
+    <div class="mBox">
+      <div class="mTitle">⏸ PAUSED</div><div class="mSub">WIZARD AT REST</div>
+      <div class="mBtns">
+        <button class="btn btnPrimary" onclick="resumeGame()" style="width:100%;">▶ RESUME</button>
+        <button class="btn btnAd btnAdGreen" onclick="showAd('undos');closeModal('pauseModal');" style="width:100%;">📺 WATCH AD · +3 UNDOS</button>
+        <button class="btn btnAd" onclick="showAd('shield');closeModal('pauseModal');" style="width:100%;">📺 WATCH AD · 🛡️ SHIELD</button>
+        <button class="btn btnGhost" onclick="replayLevel()" style="width:100%;">🔄 RESTART</button>
+        <button class="btn btnGhost" onclick="openPage('mapPage')" style="width:100%;">🗺️ MAP</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="stuckModal">
+    <div class="mBox">
+      <div class="mTitle">🤔 STUCK?</div><div class="mSub">NO VALID MOVES</div>
+      <div class="mBtns">
+        <button class="btn btnAdGreen btn btnAd" onclick="showAd('shuffle');closeModal('stuckModal');" style="width:100%;">📺 WATCH AD · FREE SHUFFLE</button>
+        <button class="btn btnAd" onclick="showAd('flask');closeModal('stuckModal');" style="width:100%;">📺 WATCH AD · FREE FLASK</button>
+        <button class="btn btnGhost" onclick="replayLevel()" style="width:100%;">🔄 RESTART LEVEL</button>
+        <button class="btn btnGhost" onclick="closeModal('stuckModal')" style="width:100%;">KEEP TRYING</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="statsModal">
+  <div class="mBox">
+    <div class="mTitle">📊 WIZARD STATS</div><div class="mSub">YOUR MAGICAL JOURNEY</div>
+    <div id="statsContent" style="margin:12px 0;"></div>
+    <button class="btn btnGhost" onclick="closeModal('statsModal')" style="width:100%;">CLOSE</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  ██████╗ ███████╗ █████╗ ██╗      █████╗ ██████╗ ███╗   ███╗
+//  ██╔══██╗██╔════╝██╔══██╗██║     ██╔══██╗██╔══██╗████╗ ████║
+//  ██████╔╝█████╗  ███████║██║     ███████║██║  ██║██╔████╔██║
+//  ██╔══██╗██╔══╝  ██╔══██║██║     ██╔══██║██║  ██║██║╚██╔╝██║
+//  ██║  ██║███████╗██║  ██║███████╗██║  ██║██████╔╝██║ ╚═╝ ██║
+//  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝
+//
+//  ADMOB IDs — REPLACE WITH YOUR REAL IDs FROM admob.google.com
+// ════════════════════════════════════════════════════════════════
+
+const ADMOB = {
+  // ⚠️ REPLACE ALL VALUES BELOW WITH YOUR REAL ADMOB IDs
+  appId:       'ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX', // From AdMob → Apps
+  banner:      'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Banner ad unit
+  interstitial:'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Interstitial ad unit
+  rewarded:    'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX', // Rewarded ad unit
+
+  // ✅ TEST IDs (use during development — auto-replaced above when native)
+  test: {
+    appId:       'ca-app-pub-3940256099942544~3347511713',
+    banner:      'ca-app-pub-3940256099942544/6300978111',
+    interstitial:'ca-app-pub-3940256099942544/1033173712',
+    rewarded:    'ca-app-pub-3940256099942544/5224354917',
+  }
+};
+
+// ⚠️ SET TO false BEFORE PUBLISHING TO PLAY STORE!
+const USE_TEST_ADS = true;
+
+// Active IDs (auto-switches between test and real)
+const AD_IDS = {
+  appId:       USE_TEST_ADS ? ADMOB.test.appId       : ADMOB.appId,
+  banner:      USE_TEST_ADS ? ADMOB.test.banner       : ADMOB.banner,
+  interstitial:USE_TEST_ADS ? ADMOB.test.interstitial : ADMOB.interstitial,
+  rewarded:    USE_TEST_ADS ? ADMOB.test.rewarded     : ADMOB.rewarded,
+};
+
+// ════════════════════════════════════════════════════════════════
+//  REAL ADMOB ENGINE
+//  Works automatically when app runs inside Capacitor
+// ════════════════════════════════════════════════════════════════
+
+let adMobPlugin = null;
+let rewardedAdReady = false;
+let rewardCallback = null;
+
+// Initialize AdMob (called when Capacitor is ready)
+async function initAdMob() {
+  try {
+    // Check if running in Capacitor native app
+    if(!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+      console.log('🌐 Browser mode — using simulated ads');
+      document.getElementById('adStatusMsg').textContent =
+        '(Browser mode — simulated ad)';
+      return;
+    }
+
+    console.log('📱 Native app detected — loading real AdMob');
+
+    // Get AdMob plugin
+    adMobPlugin = window.Capacitor.Plugins.AdMob;
+
+    if(!adMobPlugin) {
+      console.log('❌ AdMob plugin not found');
+      return;
+    }
+
+    // Initialize AdMob SDK
+    await adMobPlugin.initialize({
+      requestTrackingAuthorization: true,
+      initializeForTesting: USE_TEST_ADS,
+      testingDevices: [], // Add your device ID here for testing
+    });
+
+    console.log('✅ AdMob SDK initialized');
+
+    // Show banner immediately
+    await showBannerAd();
+
+    // Preload rewarded ad
+    await prepareRewardedAd();
+
+    // Listen for rewarded ad events
+    adMobPlugin.addListener('onRewardedVideoAdRewardedUser', (reward) => {
+      console.log('🎁 User rewarded:', reward);
+      rewardedAdReady = false;
+      if(rewardCallback) {
+        rewardCallback();
+        rewardCallback = null;
+      }
+      closeAd();
+      // Preload next ad
+      setTimeout(prepareRewardedAd, 1000);
+    });
+
+    adMobPlugin.addListener('onRewardedVideoAdClosed', () => {
+      console.log('📺 Rewarded ad closed');
+      rewardedAdReady = false;
+      closeAd();
+      setTimeout(prepareRewardedAd, 1000);
+    });
+
+    adMobPlugin.addListener('onRewardedVideoAdFailedToLoad', (err) => {
+      console.log('❌ Rewarded ad failed:', err);
+      rewardedAdReady = false;
+      document.getElementById('adStatusMsg').textContent =
+        'Ad unavailable — try again later';
+    });
+
+    adMobPlugin.addListener('onRewardedVideoAdLoaded', () => {
+      console.log('✅ Rewarded ad loaded and ready');
+      rewardedAdReady = true;
+      document.getElementById('adStatusMsg').textContent =
+        '✅ Ad ready to watch!';
+    });
+
+    adMobPlugin.addListener('onInterstitialAdClosed', () => {
+      console.log('Interstitial closed');
+    });
+
+  } catch(e) {
+    console.error('AdMob init error:', e);
+  }
+}
+
+// Show Banner Ad (stays on screen)
+async function showBannerAd() {
+  if(!adMobPlugin) return;
+  try {
+    await adMobPlugin.showBanner({
+      adId: AD_IDS.banner,
+      adSize: 'BANNER',
+      position: 'BOTTOM_CENTER',
+      margin: 0,
+      isTesting: USE_TEST_ADS,
+    });
+    // Hide the fake banner div since real one shows
+    const fakeBanner = document.getElementById('adBannerBottom');
+    if(fakeBanner) fakeBanner.style.display = 'none';
+    console.log('✅ Banner ad displayed');
+  } catch(e) {
+    console.error('Banner error:', e);
+  }
+}
+
+// Preload Rewarded Ad (ready for when user clicks)
+async function prepareRewardedAd() {
+  if(!adMobPlugin) return;
+  try {
+    await adMobPlugin.prepareRewardVideoAd({
+      adId: AD_IDS.rewarded,
+      isTesting: USE_TEST_ADS,
+    });
+    console.log('🎬 Rewarded ad preloading...');
+  } catch(e) {
+    console.error('Prepare rewarded error:', e);
+    rewardedAdReady = false;
+  }
+}
+
+// Show Rewarded Ad (real AdMob)
+async function showRealRewardedAd(onReward) {
+  if(!adMobPlugin) return false;
+
+  rewardCallback = onReward;
+
+  try {
+    if(rewardedAdReady) {
+      // Ad is preloaded — show immediately
+      await adMobPlugin.showRewardVideoAd();
+      return true;
+    } else {
+      // Not ready yet — prepare and show
+      document.getElementById('adStatusMsg').textContent =
+        'Loading ad... please wait';
+      await adMobPlugin.prepareRewardVideoAd({
+        adId: AD_IDS.rewarded,
+        isTesting: USE_TEST_ADS,
+      });
+      await adMobPlugin.showRewardVideoAd();
+      return true;
+    }
+  } catch(e) {
+    console.error('Show rewarded error:', e);
+    document.getElementById('adStatusMsg').textContent =
+      'Ad unavailable — reward given anyway';
+    // Give reward anyway if ad fails
+    setTimeout(() => { if(onReward) onReward(); closeAd(); }, 1500);
+    return false;
+  }
+}
+
+// Show Interstitial (between levels)
+async function showInterstitialAd() {
+  if(!adMobPlugin) return;
+  try {
+    await adMobPlugin.prepareInterstitial({
+      adId: AD_IDS.interstitial,
+      isTesting: USE_TEST_ADS,
+    });
+    await adMobPlugin.showInterstitial();
+  } catch(e) {
+    console.error('Interstitial error:', e);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AD MODAL SYSTEM (Browser simulation + Native bridge)
+// ════════════════════════════════════════════════════════════════
+
+const AD_SPONSORS=[
+  {logo:'🎮',name:'GameMaster Pro',   tag:'Level up your gaming!'},
+  {logo:'🧪',name:'AlchemyLabs',      tag:'Science of fun!'},
+  {logo:'⚔️',name:'HeroQuest',        tag:'Your next adventure!'},
+  {logo:'🌟',name:'StarApps',         tag:'Apps that shine!'},
+  {logo:'🔮',name:'MysticGames',      tag:'Magic in your hands!'},
+];
+
+const AD_REWARDS={
+  coins:      {items:[{icon:'🪙',amt:'+200 Coins',lbl:'COINS'},{icon:'💎',amt:'+1 Gem',lbl:'GEM'}],       give:()=>{PD.coins+=200;PD.gems+=1;PD.stats.adsWatched++;savePD();}},
+  gems:       {items:[{icon:'💎',amt:'+3 Gems',lbl:'GEMS'},{icon:'🪙',amt:'+100 Coins',lbl:'COINS'}],     give:()=>{PD.gems+=3;PD.coins+=100;PD.stats.adsWatched++;savePD();}},
+  undos:      {items:[{icon:'↩️',amt:'+3 Undos',lbl:'UNDOS'},{icon:'🪙',amt:'+50 Coins',lbl:'COINS'}],    give:()=>{gUndos+=3;PD.coins+=50;PD.stats.adsWatched++;savePD();updateGameUI();}},
+  hint:       {items:[{icon:'💡',amt:'Free Hint',lbl:'HINT'},{icon:'🪙',amt:'+30 Coins',lbl:'COINS'}],    give:()=>{PD.coins+=30;PD.stats.adsWatched++;savePD();showHint();}},
+  shuffle:    {items:[{icon:'🔀',amt:'Free Shuffle',lbl:'SHUFFLE'},{icon:'🪙',amt:'+50 Coins',lbl:'COINS'}],give:()=>{gShuffles++;PD.coins+=50;PD.stats.adsWatched++;savePD();shufflePotions();}},
+  flask:      {items:[{icon:'🫙',amt:'Free Flask',lbl:'FLASK'},{icon:'🪙',amt:'+40 Coins',lbl:'COINS'}],   give:()=>{gFlasks++;PD.coins+=40;PD.stats.adsWatched++;savePD();addFlask();}},
+  shield:     {items:[{icon:'🛡️',amt:'Shield On',lbl:'SHIELD'},{icon:'💎',amt:'+1 Gem',lbl:'GEM'}],       give:()=>{shieldOn=true;PD.gems++;PD.stats.adsWatched++;savePD();document.getElementById('gShldBdg').style.display='block';showNotif('🛡️ SHIELD!','Explosion protection active',1500);}},
+  double:     {items:[{icon:'🪙',amt:'2× Coins',lbl:'DOUBLE'},{icon:'💎',amt:'2× Gems',lbl:'DOUBLE'}],     give:()=>{applyDouble();}},
+  dailyDouble:{items:[{icon:'🪙',amt:'2× Daily Coins',lbl:'DOUBLE'},{icon:'💎',amt:'2× Gems',lbl:'DOUBLE'}],give:()=>{PD.dailyDouble=true;PD.stats.adsWatched++;savePD();showNotif('📺 DOUBLE ACTIVE','Daily rewards doubled!',2000);}},
+  world:      {items:[{icon:'🔓',amt:'World Unlock',lbl:'UNLOCK'},{icon:'🪙',amt:'+200 Coins',lbl:'BONUS'}],give:()=>{doWorldAdUnlock();}},
+  item:       {items:[{icon:'🎁',amt:'Item Unlocked',lbl:'ITEM'}],                                           give:()=>{doItemAdUnlock();}},
+};
+
+let curAdType='coins', adCb=null, adTick=null, adSecs=30, adCanSkip=false;
+let worldAdQ=null, itemAdQ=null;
+let lastCoins=0, lastGems=0;
+
+function showAd(type, cb=null){
+  curAdType=type; adCb=cb;
+  const r=AD_REWARDS[type]; if(!r)return;
+
+  // Populate reward items
+  document.getElementById('adItems').innerHTML=r.items.map(it=>`
+    <div class="adItem">
+      <div class="adItemIcon">${it.icon}</div>
+      <div class="adItemAmt">${it.amt}</div>
+      <div class="adItemLbl">${it.lbl}</div>
+    </div>
+  `).join('');
+
+  // Reset UI
+  document.getElementById('adBar').style.width='0%';
+  document.getElementById('adCountdown').textContent=':30';
+  document.getElementById('adSkip').classList.remove('show');
+  document.getElementById('adWatchBtn').style.display='block';
+  document.getElementById('adLogo').style.display='none';
+  document.getElementById('adName').textContent='Tap WATCH AD below';
+  document.getElementById('adStatusMsg').textContent=
+    window.CAPACITOR_AVAILABLE ? '✅ Real AdMob ad ready' : '(Browser — simulated)';
+
+  document.getElementById('adModal').classList.add('open');
+  adCanSkip=false;
+}
+
+function startAd(){
+  // ── NATIVE APP: Show real AdMob rewarded ad ──
+  if(window.Capacitor && window.Capacitor.isNativePlatform() && adMobPlugin) {
+    document.getElementById('adWatchBtn').style.display='none';
+    document.getElementById('adName').textContent='Loading real ad...';
+    document.getElementById('adStatusMsg').textContent='📺 Connecting to AdMob...';
+
+    // Give reward when real ad completes
+    showRealRewardedAd(() => {
+      // This is called when user earns reward from real ad
+      const r=AD_REWARDS[curAdType];
+      if(r) r.give();
+      if(adCb){ adCb(); adCb=null; }
+      updateAllUI();
+      spawnFX(210,400,'#ffd700',18,'burst');
+      showNotif('🎁 REWARD EARNED!','Thanks for watching!',1800);
+    });
+    return;
+  }
+
+  // ── BROWSER: Simulate ad with countdown ──
+  const sp=AD_SPONSORS[Math.floor(Math.random()*AD_SPONSORS.length)];
+  document.getElementById('adLogo').textContent=sp.logo;
+  document.getElementById('adLogo').style.display='block';
+  document.getElementById('adName').textContent=sp.name;
+  document.getElementById('adTag').textContent=sp.tag;
+  document.getElementById('adWatchBtn').style.display='none';
+  document.getElementById('adStatusMsg').textContent='🌐 Simulated ad (browser only)';
+  adSecs=30; adCanSkip=false;
+  clearInterval(adTick);
+  adTick=setInterval(()=>{
+    adSecs--;
+    document.getElementById('adBar').style.width=((30-adSecs)/30*100)+'%';
+    document.getElementById('adCountdown').textContent=
+      ':'+String(adSecs).padStart(2,'0');
+    if(adSecs<=25&&!adCanSkip){
+      adCanSkip=true;
+      document.getElementById('adSkip').classList.add('show');
+    }
+    if(adSecs<=0){ clearInterval(adTick); giveAdReward(); }
+  },1000);
+}
+
+function skipAd(){ if(adCanSkip){ clearInterval(adTick); giveAdReward(); } }
+
+function giveAdReward(){
+  const r=AD_REWARDS[curAdType];
+  if(r) r.give();
+  closeAd();
+  if(adCb){ adCb(); adCb=null; }
+  updateAllUI();
+  spawnFX(210,400,'#ffd700',18,'burst');
+  showNotif('🎁 REWARD!','Thanks for watching!',1800);
+}
+
+function closeAd(){
+  clearInterval(adTick);
+  document.getElementById('adModal').classList.remove('open');
+}
+
+// Show interstitial every 5 levels
+let levelsSinceInterstitial = 0;
+function maybeShowInterstitial(){
+  levelsSinceInterstitial++;
+  if(levelsSinceInterstitial >= 5){
+    levelsSinceInterstitial = 0;
+    showInterstitialAd();
+  }
+}
+
+function doWorldAdUnlock(){
+  if(!worldAdQ)return;
+  const w=worldAdQ;
+  PD.adsForWorld[w.id]=(PD.adsForWorld[w.id]||0)+1;
+  PD.coins+=200; PD.stats.adsWatched++;
+  if(PD.adsForWorld[w.id]>=w.adAds){
+    PD.unlockedWorlds.push(w.id);
+    showNotif(`🔓 ${w.emoji} ${w.name}!`,'World unlocked!',2500);
+    spawnFX(210,400,'#ffd700',28,'burst');
+  } else {
+    const rem=w.adAds-PD.adsForWorld[w.id];
+    showNotif(`📺 ${PD.adsForWorld[w.id]}/${w.adAds} ads`,`${rem} more to unlock!`,2000);
+  }
+  savePD(); worldAdQ=null; buildMap();
+}
+
+function doItemAdUnlock(){
+  if(!itemAdQ)return;
+  if(!PD.ownedItems.includes(itemAdQ.id)) PD.ownedItems.push(itemAdQ.id);
+  PD.coins+=50; PD.stats.adsWatched++;
+  showNotif(`✨ ${itemAdQ.name} UNLOCKED!`,'Item added!',2000);
+  savePD(); itemAdQ=null;
+  buildShop();
+}
+
+function applyDouble(){
+  if(!PD.pendingDouble)return;
+  PD.coins+=PD.pendingDouble.coins;
+  PD.gems+=PD.pendingDouble.gems;
+  PD.stats.adsWatched++;
+  showNotif('💰 DOUBLED!',`+${PD.pendingDouble.coins}🪙 +${PD.pendingDouble.gems}💎`,2000);
+  PD.pendingDouble=null; savePD(); updateAllUI();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REST OF YOUR GAME CODE — COMPLETELY UNCHANGED
+// ════════════════════════════════════════════════════════════════
+
+let actx;
+function ac(){ if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)(); return actx; }
+function tone(f,t,d,v,dl=0){
+  try{
+    const ctx=ac(),o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type=t;o.frequency.value=f;
+    g.gain.setValueAtTime(0,ctx.currentTime+dl);
+    g.gain.linearRampToValueAtTime(v,ctx.currentTime+dl+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dl+d);
+    o.start(ctx.currentTime+dl);o.stop(ctx.currentTime+dl+d+0.05);
+  }catch(e){}
+}
+const sndPour   =()=>{tone(660,'sine',0.15,0.18);tone(550,'sine',0.12,0.12,0.1);};
+const sndSel    =()=>tone(440,'sine',0.08,0.15);
+const sndErr    =()=>tone(150,'sawtooth',0.2,0.3);
+const sndUndo   =()=>{tone(330,'sine',0.1,0.15);tone(220,'sine',0.15,0.12,0.08);};
+const sndCoin   =()=>{tone(880,'sine',0.12,0.2);tone(1100,'sine',0.1,0.15,0.1);};
+const sndBuy    =()=>[440,550,660].forEach((f,i)=>tone(f,'sine',0.15,0.2,i*0.07));
+const sndExp    =()=>{tone(80,'sawtooth',0.4,0.4);tone(120,'square',0.3,0.3,0.05);};
+const sndWin    =()=>[523,659,784,1047].forEach((f,i)=>{tone(f,'sine',0.3,0.25,i*0.12);tone(f*1.5,'sine',0.2,0.15,i*0.12+0.05);});
+const sndFinish =()=>[330,440,550,660,880].forEach((f,i)=>tone(f,'sine',0.25,0.2,i*0.08));
+const sndShield =()=>{tone(200,'triangle',0.3,0.3);tone(400,'sine',0.2,0.2,0.1);};
+
+const bgC=document.getElementById('bgCanvas').getContext('2d');
+const fxC=document.getElementById('fxCanvas').getContext('2d');
+let bgOrbs=[], fxParts=[], bgFrame=0;
+
+const THEMES = {
+  th_classic:{name:'Classic Purple',icon:'🟣',a:'#7700ff',b:'#cc00ff',c:'#ff0066',bg1:'#040210',bg2:'#080520',bg3:'#0a0418',glow:'rgba(120,0,255,0.45)',border:'rgba(140,100,255,0.28)',bottleBody:'rgba(18,10,45,0.72)',bottleNeck:'rgba(18,10,45,0.78)',bottleStroke:'rgba(140,100,255,0.28)',orbColors:['#7700ff','#ff0066','#00ccff','#ffd700','#00ff88']},
+  th_fire:   {name:'Fire Mage',    icon:'🔥',a:'#ff2200',b:'#ff6600',c:'#ffcc00',bg1:'#140502',bg2:'#200a04',bg3:'#180604',glow:'rgba(255,80,0,0.45)',border:'rgba(255,100,50,0.3)',bottleBody:'rgba(40,12,4,0.75)',bottleNeck:'rgba(40,12,4,0.8)',bottleStroke:'rgba(255,100,50,0.3)',orbColors:['#ff2200','#ff6600','#ffcc00','#ff4400','#ffaa00']},
+  th_ice:    {name:'Ice Witch',    icon:'❄️',a:'#0088ff',b:'#00ccff',c:'#88ffff',bg1:'#020c18',bg2:'#041520',bg3:'#030e18',glow:'rgba(0,150,255,0.45)',border:'rgba(50,180,255,0.28)',bottleBody:'rgba(4,20,40,0.72)',bottleNeck:'rgba(4,20,40,0.78)',bottleStroke:'rgba(50,180,255,0.28)',orbColors:['#0088ff','#00ccff','#88ffff','#0055ff','#00ffcc']},
+  th_dark:   {name:'Necromancer', icon:'🌑',a:'#440088',b:'#880044',c:'#cc0088',bg1:'#060006',bg2:'#0a000a',bg3:'#080008',glow:'rgba(120,0,80,0.45)',border:'rgba(140,0,100,0.3)',bottleBody:'rgba(12,0,18,0.8)',bottleNeck:'rgba(12,0,18,0.85)',bottleStroke:'rgba(140,0,100,0.3)',orbColors:['#440088','#880044','#cc0088','#660044','#aa00cc']},
+  th_nature: {name:'Druid Master',icon:'🌿',a:'#006600',b:'#00aa44',c:'#88ff00',bg1:'#030c02',bg2:'#061404',bg3:'#050e03',glow:'rgba(0,160,60,0.45)',border:'rgba(50,200,80,0.28)',bottleBody:'rgba(4,18,6,0.72)',bottleNeck:'rgba(4,18,6,0.78)',bottleStroke:'rgba(50,200,80,0.28)',orbColors:['#006600','#00aa44','#88ff00','#004400','#00ff66']},
+  th_storm:  {name:'Storm Wizard',icon:'⚡',a:'#4400cc',b:'#cc88ff',c:'#ffffff',bg1:'#060810',bg2:'#0a0c18',bg3:'#080a14',glow:'rgba(100,100,255,0.45)',border:'rgba(160,160,255,0.28)',bottleBody:'rgba(8,8,30,0.72)',bottleNeck:'rgba(8,8,30,0.78)',bottleStroke:'rgba(160,160,255,0.28)',orbColors:['#4400cc','#cc88ff','#ffffff','#8800ff','#aaaaff']},
+};
+
+const SKIN_RENDERERS={sk_default:drawClassicBottle,sk_round:drawRoundBottle,sk_crystal:drawCrystalBottle,sk_skull:drawSkullBottle,sk_potion:drawPotionBottle,sk_lantern:drawLanternBottle};
+const CAP=4;
+const POTIONS=[
+  {id:'crimson',name:'Crimson',hex:'#ff2244',glow:'#ff0022',explodesWith:['emerald','toxic']},
+  {id:'azure',  name:'Azure',  hex:'#2266ff',glow:'#0044ff',explodesWith:['amber']},
+  {id:'emerald',name:'Emerald',hex:'#22cc44',glow:'#00ff44',explodesWith:['crimson']},
+  {id:'amber',  name:'Amber',  hex:'#ffaa00',glow:'#ffcc00',explodesWith:['azure','shadow']},
+  {id:'violet', name:'Violet', hex:'#cc22ff',glow:'#aa00ff',explodesWith:['toxic']},
+  {id:'toxic',  name:'Toxic',  hex:'#88ff00',glow:'#aaff00',explodesWith:['violet','crimson']},
+  {id:'rose',   name:'Rose',   hex:'#ff66aa',glow:'#ff0088',explodesWith:['shadow']},
+  {id:'shadow', name:'Shadow', hex:'#6644aa',glow:'#8800ff',explodesWith:['rose','amber']},
+];
+const WORLDS=[
+  {id:1,name:'APPRENTICE TOWER',   sub:'Master the basics',      emoji:'🏰',levels:[1,10], unlockCoins:0,  unlockGems:0, colors:4,explode:false,adAds:0},
+  {id:2,name:"ALCHEMIST'S FOREST", sub:"Nature's potions",       emoji:'🌲',levels:[11,20],unlockCoins:200,unlockGems:0, colors:5,explode:true, adAds:3},
+  {id:3,name:'SHADOW CITADEL',     sub:'Dark magic awaits',      emoji:'🌑',levels:[21,30],unlockCoins:500,unlockGems:2, colors:6,explode:true, adAds:5},
+  {id:4,name:'CRYSTAL CAVERNS',    sub:'Pure elemental magic',   emoji:'💎',levels:[31,40],unlockCoins:0,  unlockGems:5, colors:7,explode:true, adAds:8},
+  {id:5,name:'ARCANE SUMMIT',      sub:'The ultimate challenge', emoji:'⚡',levels:[41,50],unlockCoins:0,  unlockGems:10,colors:8,explode:true, adAds:10},
+];
+const SHOP_CATALOG={
+  powerups:[
+    {id:'pu_undo5',  name:'Undo Bundle',      desc:'5 extra undo scrolls',          icon:'📜',price:80, curr:'coins',amount:5, tags:['HOT'],    adAlt:1},
+    {id:'pu_flask3', name:'Flask Pack',        desc:'3 extra sorting flasks',        icon:'🫙',price:60, curr:'coins',amount:3, tags:[],         adAlt:1},
+    {id:'pu_hint10', name:'Hint Tome',         desc:'10 wizard hint uses',           icon:'📖',price:100,curr:'coins',amount:10,tags:['SALE'],   adAlt:2},
+    {id:'pu_shuffle',name:'Chaos Scroll',      desc:'Reshuffle potions 3×',          icon:'🔀',price:120,curr:'coins',amount:3, tags:[],         adAlt:2},
+    {id:'pu_shield', name:'Explosion Shield',  desc:'5 explosion protections',       icon:'🛡️',price:3,  curr:'gems', amount:5, tags:['NEW'],    adAlt:3},
+    {id:'pu_auto',   name:'Auto-Sort Spell',   desc:'Auto-complete one bottle',      icon:'🤖',price:2,  curr:'gems', amount:1, tags:['LIMITED'],adAlt:5},
+    {id:'pu_nox',    name:'No-Explode',        desc:'Prevent all explosions (1 lvl)',icon:'🧪',price:4, curr:'gems', amount:1, tags:[],         adAlt:4},
+  ],
+  skins:[
+    {id:'sk_default',name:'Classic Flask',   desc:'The timeless potion bottle',  icon:'🍶',price:0,  curr:'coins',tags:[]},
+    {id:'sk_round',  name:'Round Bubble',    desc:'Cute bubbly round flask',     icon:'⚗️',price:250,curr:'coins',tags:['HOT'],    adAlt:3},
+    {id:'sk_crystal',name:'Crystal Vial',    desc:'Sparkling crystal container', icon:'💎',price:5,  curr:'gems', tags:['NEW'],    adAlt:5},
+    {id:'sk_skull',  name:'Skull Flask',     desc:'Dark necromancer vessel',     icon:'💀',price:400,curr:'coins',tags:[],         adAlt:4},
+    {id:'sk_potion', name:'Classic Potion',  desc:'Old-school RPG bottle',       icon:'🧪',price:3,  curr:'gems', tags:['SALE'],   adAlt:4},
+    {id:'sk_lantern',name:'Magic Lantern',   desc:'Glowing lantern flask',       icon:'🏮',price:6,  curr:'gems', tags:['LIMITED'],adAlt:6},
+  ],
+  themes:[
+    {id:'th_classic',name:'Classic Purple',desc:'Timeless wizard vibes',  icon:'🟣',price:0,  curr:'coins',tags:[]},
+    {id:'th_fire',   name:'Fire Mage',     desc:'Blazing crimson theme',  icon:'🔥',price:300,curr:'coins',tags:['HOT'],    adAlt:4},
+    {id:'th_ice',    name:'Ice Witch',     desc:'Frosty azure theme',     icon:'❄️',price:300,curr:'coins',tags:[],         adAlt:4},
+    {id:'th_dark',   name:'Necromancer',   desc:'Shadowy dark theme',     icon:'🌑',price:6,  curr:'gems', tags:['NEW'],    adAlt:6},
+    {id:'th_nature', name:'Druid Master',  desc:'Earthy forest theme',    icon:'🌿',price:4,  curr:'gems', tags:[],         adAlt:5},
+    {id:'th_storm',  name:'Storm Wizard',  desc:'Electric storm theme',   icon:'⚡',price:8,  curr:'gems', tags:['LIMITED'],adAlt:8},
+  ],
+  currency:[
+    {id:'cp_ad',    name:'Ad Reward',     amount:'200 coins + 1 gem',     icon:'📺',price:'FREE',  curr:'ad'},
+    {id:'cp_ad2',   name:'Coin Starter',  amount:'500 coins',             icon:'👜',price:'2 Ads', curr:'ad2'},
+    {id:'cp_bag',   name:'Gold Bag',      amount:'1,200 coins',           icon:'💰',price:'$0.99', curr:'iap'},
+    {id:'cp_gems5', name:'Gem Bundle',    amount:'5 gems',                icon:'💎',price:'$0.99', curr:'iap'},
+    {id:'cp_bundle',name:'Wizard Bundle', amount:'3,000 coins + 15 gems', icon:'🏆',price:'$2.99', curr:'iap',isBest:true},
+    {id:'cp_mega',  name:'Arcane Hoard',  amount:'10,000 coins + 50 gems',icon:'👑',price:'$9.99', curr:'iap'},
+  ],
+};
+
+let PD=(()=>{
+  try{const s=localStorage.getItem('psv4');if(s)return JSON.parse(s);}catch(e){}
+  return{coins:500,gems:10,highestUnlocked:1,totalScore:0,levelData:{},unlockedWorlds:[1],ownedItems:['sk_default','th_classic'],equippedSkin:'sk_default',equippedTheme:'th_classic',inventory:{},streak:0,lastDate:null,dailyDone:false,dailyDate:null,dailyDouble:false,stats:{solved:0,moves:0,explosions:0,hints:0,adsWatched:0},adsForWorld:{},pendingDouble:null};
+})();
+function savePD(){try{localStorage.setItem('psv4',JSON.stringify(PD));}catch(e){}}
+function inv(id){return PD.inventory[id]||0;}
+function addInv(id,n){PD.inventory[id]=(PD.inventory[id]||0)+n;savePD();}
+
+function applyTheme(themeId){
+  const t=THEMES[themeId]||THEMES['th_classic'];
+  const r=document.documentElement.style;
+  r.setProperty('--themeA',t.a);r.setProperty('--themeB',t.b);r.setProperty('--themeC',t.c);
+  r.setProperty('--themeBg1',t.bg1);r.setProperty('--themeBg2',t.bg2);r.setProperty('--themeBg3',t.bg3);
+  r.setProperty('--themeGlow',t.glow);r.setProperty('--themeBorder',t.border);
+  r.setProperty('--bottleBody',t.bottleBody);r.setProperty('--bottleNeck',t.bottleNeck);r.setProperty('--bottleStroke',t.bottleStroke);
+  bgOrbs.forEach((orb,i)=>{orb.color=t.orbColors[i%t.orbColors.length];});
+}
+
+for(let i=0;i<22;i++) bgOrbs.push({x:Math.random()*420,y:Math.random()*780,r:Math.random()*2.5+0.8,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,color:'#7700ff',alpha:Math.random()*0.45+0.15,pulse:Math.random()*Math.PI*2});
+
+function drawBG(){
+  bgFrame++;
+  const t=THEMES[PD.equippedTheme]||THEMES.th_classic;
+  const g=bgC.createLinearGradient(0,0,0,780);
+  g.addColorStop(0,t.bg1);g.addColorStop(0.5,t.bg2);g.addColorStop(1,t.bg3);
+  bgC.fillStyle=g;bgC.fillRect(0,0,420,780);
+  bgOrbs.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0||p.x>420)p.vx*=-1;if(p.y<0||p.y>780)p.vy*=-1;
+    p.pulse+=0.025;
+    const a=p.alpha*(0.55+0.45*Math.sin(p.pulse));
+    bgC.beginPath();bgC.arc(p.x,p.y,p.r*(1+0.35*Math.sin(p.pulse)),0,Math.PI*2);
+    bgC.globalAlpha=a;bgC.shadowBlur=14;bgC.shadowColor=p.color;bgC.fillStyle=p.color;bgC.fill();
+    bgC.shadowBlur=0;bgC.globalAlpha=1;
+  });
+  if(bgFrame%3===0){for(let i=0;i<2;i++){bgC.fillStyle=`rgba(255,255,255,${Math.random()*0.22})`;bgC.fillRect(Math.random()*420,Math.random()*780,1,1);}}
+}
+
+function spawnFX(x,y,color,n=20,type='burst'){
+  for(let i=0;i<n;i++){
+    const a=type==='burst'?(Math.PI*2/n)*i+Math.random()*0.5:Math.random()*Math.PI*2;
+    const s=type==='explode'?Math.random()*9+3:Math.random()*5+1.5;
+    fxParts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,color,size:type==='explode'?Math.random()*7+2:Math.random()*4+1,life:type==='explode'?65+Math.random()*45:40+Math.random()*25,maxLife:type==='explode'?110:65,gravity:0.08,type});
+  }
+}
+function spawnStars(x,y,n=12){
+  for(let i=0;i<n;i++){const a=(Math.PI*2/n)*i;fxParts.push({x,y,vx:Math.cos(a)*4.5,vy:Math.sin(a)*4.5,color:'#ffd700',size:3,life:55,maxLife:55,gravity:0.04,type:'star'});}
+}
+function drawFX(){
+  fxC.clearRect(0,0,420,780);
+  fxParts=fxParts.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;p.vx*=0.97;p.life--;
+    const a=p.life/p.maxLife;
+    fxC.globalAlpha=a;fxC.shadowBlur=10;fxC.shadowColor=p.color;fxC.fillStyle=p.color;
+    if(p.type==='star'){fxC.beginPath();fxC.arc(p.x,p.y,p.size*a,0,Math.PI*2);fxC.fill();}
+    else fxC.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+    fxC.shadowBlur=0;fxC.globalAlpha=1;
+    return p.life>0;
+  });
+}
+(function loop(){drawBG();drawFX();requestAnimationFrame(loop);})();
+
+function openPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  closeAllModals();
+  if(id==='mapPage')   buildMap();
+  if(id==='shopPage')  buildShop();
+  if(id==='dailyPage') buildDaily();
+  if(id==='homePage')  updateHomeUI();
+  if(id==='gamePage'&&gameActive) updateGameUI();
+}
+function goShop(){activeShopTab=0;openPage('shopPage');}
+
+let nTimer;
+function showNotif(t,s='',d=1500){
+  document.getElementById('notifT').textContent=t;
+  document.getElementById('notifS').textContent=s;
+  const n=document.getElementById('notif');
+  n.classList.add('show');clearTimeout(nTimer);
+  nTimer=setTimeout(()=>n.classList.remove('show'),d);
+}
+function flashScreen(c){
+  const f=document.getElementById('flash');
+  f.style.background=`radial-gradient(circle,${c},transparent)`;
+  f.style.opacity='1';setTimeout(()=>f.style.opacity='0',350);
+}
+function floatTxt(txt,color,x,y){
+  const el=document.createElement('div');el.className='floatTxt';
+  el.style.cssText=`left:${x}px;top:${y}px;color:${color};font-size:18px;text-shadow:0 0 8px ${color};`;
+  el.textContent=txt;document.getElementById('gc').appendChild(el);setTimeout(()=>el.remove(),1300);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeAllModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'));}
+
+function updateHomeUI(){
+  document.getElementById('hC').textContent=PD.coins;
+  document.getElementById('hG').textContent=PD.gems;
+  document.getElementById('hLvl').textContent=PD.highestUnlocked;
+  document.getElementById('hSc').textContent=PD.totalScore>=1000?Math.floor(PD.totalScore/1000)+'K':PD.totalScore;
+  document.getElementById('hStr').textContent=PD.streak+'🔥';
+  document.getElementById('hSol').textContent=PD.stats.solved;
+  document.getElementById('hLvlBadge').textContent='LVL '+PD.highestUnlocked;
+  document.getElementById('hStreakS').textContent='Streak: '+PD.streak+' day'+(PD.streak!==1?'s':'');
+  document.getElementById('hDailyS').textContent=PD.dailyDate===new Date().toDateString()?'✅ Completed!':'Play today\'s puzzle';
+  const t=THEMES[PD.equippedTheme]||THEMES.th_classic;
+  document.getElementById('homeTitle').style.background=`linear-gradient(135deg,${t.c},${t.b},${t.a})`;
+  document.getElementById('homeTitle').style.webkitBackgroundClip='text';
+  document.getElementById('homeTitle').style.webkitTextFillColor='transparent';
+  document.getElementById('homeTitle').style.backgroundClip='text';
+}
+
+function updateAllUI(){
+  updateHomeUI();
+  ['mapC','shopC','gCoinV'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=id==='gCoinV'?PD.coins+'🪙':PD.coins;});
+  ['shopG','dailyG'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=PD.gems;});
+}
+
+function buildMap(){
+  document.getElementById('mapC').textContent=PD.coins;
+  const scroll=document.getElementById('mapScroll');scroll.innerHTML='';
+  WORLDS.forEach(world=>{
+    const isUnlocked=PD.unlockedWorlds.includes(world.id);
+    const adsW=PD.adsForWorld[world.id]||0;
+    const[ws,we]=world.levels;
+    const done=Array.from({length:we-ws+1},(_,i)=>ws+i).filter(l=>PD.levelData[l]&&PD.levelData[l].stars>0).length;
+    const pct=Math.round((done/(we-ws+1))*100);
+    const block=document.createElement('div');block.className='worldBlock';
+    block.innerHTML=`<div class="worldHdr"><div class="whEm">${world.emoji}</div><div class="whInfo"><div class="whName">${world.name}</div><div class="whSub">${world.sub} · Lvl ${ws}–${we}</div>${isUnlocked?`<div class="whProg"><div class="whProgF" style="width:${pct}%"></div></div>`:''}</div>${!isUnlocked?'<div style="font-size:20px;opacity:0.45;">🔒</div>':''}</div>`;
+    if(!isUnlocked){
+      const ld=document.createElement('div');ld.className='wLockOverlay';
+      ld.innerHTML=`<div class="wloT">UNLOCK ${world.emoji} ${world.name}</div>${world.unlockCoins?`<button class="btn btnGold" style="width:100%;margin-bottom:7px;font-size:11px;padding:9px;" onclick="unlockWorldCoins(${world.id})">🪙 ${world.unlockCoins} Coins</button>`:''}${world.unlockGems?`<button class="btn btnPrimary" style="width:100%;margin-bottom:7px;font-size:11px;padding:9px;" onclick="unlockWorldGems(${world.id})">💎 ${world.unlockGems} Gems</button>`:''}${world.adAds?`<button class="btn btnAd" style="width:100%;font-size:10px;padding:9px;" onclick="adWorldUnlock(${world.id})">📺 Watch ${world.adAds-adsW}/${world.adAds} Ads (${adsW} done)</button>`:''}`;
+      block.appendChild(ld);
+    } else {
+      const grid=document.createElement('div');grid.className='lvlGrid';
+      for(let lvl=ws;lvl<=we;lvl++){
+        const ld2=PD.levelData[lvl];
+        const isComp=ld2&&ld2.stars>0;
+        const isAvail=lvl<=PD.highestUnlocked;
+        const isBoss=lvl%10===0;
+        const isCur=lvl===PD.highestUnlocked&&!isComp;
+        const nd=document.createElement('div');
+        nd.className='lvlNode '+(isBoss?'lvlBoss':isComp?'lvlDone':isAvail?'lvlAvail':'lvlLocked')+(isCur?' lvlCurrent':'');
+        nd.innerHTML=isBoss?'<div style="font-size:15px;">👹</div>':isComp?`${lvl}<div class="lvlStars">${'★'.repeat(ld2.stars)}</div>`:isAvail?`${lvl}`:'<div style="font-size:13px;">🔒</div>';
+        if(isAvail||isComp)nd.addEventListener('click',()=>launchLevel(lvl));
+        grid.appendChild(nd);
+      }
+      block.appendChild(grid);
+    }
+    scroll.appendChild(block);
+  });
+}
+
+function unlockWorldCoins(id){
+  const w=WORLDS.find(x=>x.id===id);if(!w)return;
+  if(PD.coins<w.unlockCoins){showNotif('🪙 Not enough coins!','Watch ads to earn more',1500);sndErr();return;}
+  PD.coins-=w.unlockCoins;PD.unlockedWorlds.push(id);savePD();buildMap();
+  showNotif(`🔓 ${w.emoji} ${w.name}!`,'World unlocked!',2000);
+  spawnFX(210,400,'#ffd700',22,'burst');
+}
+function unlockWorldGems(id){
+  const w=WORLDS.find(x=>x.id===id);if(!w)return;
+  if(PD.gems<w.unlockGems){showNotif('💎 Not enough gems!','Watch ads to earn',1500);sndErr();return;}
+  PD.gems-=w.unlockGems;PD.unlockedWorlds.push(id);savePD();buildMap();
+  showNotif(`🔓 ${w.emoji} ${w.name}!`,'World unlocked!',2000);
+  spawnFX(210,400,'#00ccff',22,'burst');
+}
+function adWorldUnlock(id){
+  const w=WORLDS.find(x=>x.id===id);if(!w)return;
+  worldAdQ=w;
+  AD_REWARDS.world.items=[{icon:w.emoji,amt:`World ${w.id} Access`,lbl:'UNLOCK'},{icon:'🪙',amt:'+200 Coins',lbl:'BONUS'}];
+  showAd('world');
+}
+
+function buildDaily(){
+  const today=new Date(),todayStr=today.toDateString();
+  document.getElementById('dailyG').textContent=PD.gems;
+  document.getElementById('dhDate').textContent=today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  if(PD.lastDate!==todayStr){
+    const yest=new Date(Date.now()-86400000).toDateString();
+    PD.streak=PD.lastDate===yest?PD.streak+1:1;
+    PD.lastDate=todayStr;savePD();
+  }
+  const isDone=PD.dailyDate===todayStr;
+  document.getElementById('playDailyBtn').style.display=isDone?'none':'block';
+  document.getElementById('dailyDoneMsg').style.display=isDone?'block':'none';
+  document.getElementById('dR1').textContent=isDone?'✅':'⬜';
+  document.getElementById('dR2').textContent=isDone?'✅':'⬜';
+  document.getElementById('dR3').textContent=isDone?'✅':'⬜';
+  const row=document.getElementById('streakRow');row.innerHTML='';
+  const days=['M','T','W','T','F','S','S'];
+  for(let i=0;i<7;i++){
+    const done=i<PD.streak%7,isToday=i===(PD.streak%7===0?6:(PD.streak%7)-1)&&done;
+    const d=document.createElement('div');
+    d.className='sDay'+(done?' done':'')+(isToday?' today':done?'':' future');
+    d.innerHTML=`<div class="sdI">${done?'✓':days[i]}</div><div class="sdL">${days[i]}</div>`;
+    row.appendChild(d);
+  }
+  updateCountdown();
+}
+function updateCountdown(){
+  const el=document.getElementById('dhCdT');if(!el)return;
+  const now=new Date(),mn=new Date();mn.setHours(24,0,0,0);
+  const d=mn-now;
+  el.textContent=`${String(Math.floor(d/3600000)).padStart(2,'0')}:${String(Math.floor((d%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((d%60000)/1000)).padStart(2,'0')}`;
+  setTimeout(updateCountdown,1000);
+}
+function launchDaily(){
+  const today=new Date();
+  const seed=today.getFullYear()*10000+today.getMonth()*100+today.getDate();
+  launchLevel((seed%15)+1,true);
+}
+
+let activeShopTab=0;
+const SHOP_TABS=['⚗️ POWER-UPS','🍾 SKINS','🧙 THEMES','💰 CURRENCY'];
+
+function buildShop(){
+  document.getElementById('shopC').textContent=PD.coins;
+  document.getElementById('shopG').textContent=PD.gems;
+  const tabsEl=document.getElementById('shopTabs');tabsEl.innerHTML='';
+  SHOP_TABS.forEach((t,i)=>{
+    const el=document.createElement('div');
+    el.className='sTab'+(i===activeShopTab?' active':'');
+    el.textContent=t;
+    el.addEventListener('click',()=>{activeShopTab=i;buildShop();});
+    tabsEl.appendChild(el);
+  });
+  const scroll=document.getElementById('shopScroll');scroll.innerHTML='';
+  if(activeShopTab===0)buildPowerupSection(scroll);
+  if(activeShopTab===1)buildSkinSection(scroll);
+  if(activeShopTab===2)buildThemeSection(scroll);
+  if(activeShopTab===3)buildCurrencySection(scroll);
+}
+
+function buildPowerupSection(container){
+  SHOP_CATALOG.powerups.forEach(item=>{
+    const count=inv(item.id);
+    const card=createBaseCard(item,false,false);
+    const tagHTML=buildTags(item.tags);
+    const priceStr=item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
+    card.innerHTML=`<div class="siIcon">${item.icon}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div class="siBottom">${count>0?`<div class="siPrice gold">×${count} owned</div><button class="equipBtn" onclick="event.stopPropagation();buyItem('${item.id}')" style="margin-left:8px;">+MORE</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
+    card.addEventListener('click',()=>buyItem(item.id));
+    container.appendChild(card);
+  });
+}
+
+function buildSkinSection(container){
+  SHOP_CATALOG.skins.forEach(item=>{
+    const isOwned=PD.ownedItems.includes(item.id);
+    const isEquipped=PD.equippedSkin===item.id;
+    const card=createBaseCard(item,isOwned,isEquipped);
+    const previewSVG=buildBottlePreviewSVG(item.id);
+    const tagHTML=buildTags(item.tags);
+    const priceStr=item.price===0?'FREE':item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
+    card.innerHTML=`${isEquipped?'<div class="siOwnTag ownGold">✓ ON</div>':(isOwned?'<div class="siOwnTag ownGrn">OWNED</div>':'')}<div class="siPreview">${previewSVG}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div class="siBottom">${isEquipped?`<button class="equipBtn equipped">✓ EQUIPPED</button>`:isOwned?`<button class="equipBtn" onclick="event.stopPropagation();equipSkin('${item.id}')">EQUIP</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
+    if(!isEquipped)card.addEventListener('click',()=>isOwned?equipSkin(item.id):buyItem(item.id));
+    container.appendChild(card);
+  });
+}
+
+function buildThemeSection(container){
+  SHOP_CATALOG.themes.forEach(item=>{
+    const isOwned=PD.ownedItems.includes(item.id);
+    const isEquipped=PD.equippedTheme===item.id;
+    const card=createBaseCard(item,isOwned,isEquipped);
+    const td=THEMES[item.id]||THEMES.th_classic;
+    const tagHTML=buildTags(item.tags);
+    const priceStr=item.price===0?'FREE':item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
+    const swatchStyle=`background:linear-gradient(135deg,${td.a},${td.b},${td.c});border-radius:10px;width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;${isEquipped?`border:2px solid var(--gold);box-shadow:0 0 12px rgba(255,215,0,0.5);`:''}`;
+    card.innerHTML=`${isEquipped?'<div class="siOwnTag ownGold">✓ ON</div>':(isOwned?'<div class="siOwnTag ownGrn">OWNED</div>':'')}<div style="${swatchStyle}">${item.icon}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div style="display:flex;gap:5px;margin-bottom:7px;"><div style="width:18px;height:18px;border-radius:50%;background:${td.a};"></div><div style="width:18px;height:18px;border-radius:50%;background:${td.b};"></div><div style="width:18px;height:18px;border-radius:50%;background:${td.c};"></div></div><div class="siBottom">${isEquipped?`<button class="equipBtn equipped">✓ EQUIPPED</button>`:isOwned?`<button class="equipBtn" onclick="event.stopPropagation();equipTheme('${item.id}')">EQUIP</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
+    if(!isEquipped)card.addEventListener('click',()=>isOwned?equipTheme(item.id):buyItem(item.id));
+    container.appendChild(card);
+  });
+}
+
+function buildCurrencySection(container){
+  SHOP_CATALOG.currency.forEach(pack=>{
+    const card=document.createElement('div');
+    card.className='cpCard'+(pack.isBest?' cpBest':'');
+    card.innerHTML=`${pack.isBest?'<div class="cpBestTag">BEST VALUE</div>':''}<div class="cpIco">${pack.icon}</div><div class="cpInf"><div class="cpN">${pack.name}</div><div class="cpA">${pack.amount}</div></div><div class="cpP">${pack.curr==='ad'?'📺 Free':pack.curr==='ad2'?'📺×2':pack.curr==='iap'?`$${pack.price}`:'?'}</div>`;
+    card.addEventListener('click',()=>buyCurrency(pack));
+    container.appendChild(card);
+  });
+}
+
+function createBaseCard(item,isOwned,isEquipped){
+  const card=document.createElement('div');
+  card.className='siCard'+(isOwned?' siOwned':'')+(isEquipped?' siEquipped':'')+(item.tags&&(item.tags.includes('NEW')||item.tags.includes('HOT'))?' siFeatured':'');
+  return card;
+}
+function buildTags(tags){if(!tags||!tags.length)return'';return tags.map(t=>`<span class="siTag tag${t}">${t}</span>`).join('');}
+
+function equipSkin(id){
+  if(!PD.ownedItems.includes(id)){showNotif('🔒 Not owned!','Purchase first',1000);return;}
+  PD.equippedSkin=id;savePD();
+  buildShop();
+  if(gameActive)render();
+  showNotif(`🍾 ${SHOP_CATALOG.skins.find(s=>s.id===id)?.name||'Skin'} equipped!`,'Bottles updated!',1500);
+  sndBuy();spawnFX(210,400,'#ffd700',12,'burst');
+}
+
+function equipTheme(id){
+  if(!PD.ownedItems.includes(id)){showNotif('🔒 Not owned!','Purchase first',1000);return;}
+  PD.equippedTheme=id;savePD();
+  applyTheme(id);buildShop();updateHomeUI();
+  if(gameActive)render();
+  const item=SHOP_CATALOG.themes.find(t=>t.id===id);
+  showNotif(`🧙 ${item?.name||'Theme'} equipped!`,'Theme applied instantly!',1500);
+  sndBuy();flashScreen(`${THEMES[id]?.glow||'rgba(100,0,255,0.4)'}`);
+  spawnFX(210,400,THEMES[id]?.a||'#7700ff',18,'burst');
+}
+
+function buyItem(id){
+  const allItems=[...SHOP_CATALOG.powerups,...SHOP_CATALOG.skins,...SHOP_CATALOG.themes];
+  const item=allItems.find(x=>x.id===id);if(!item)return;
+  const isOwned=PD.ownedItems.includes(id);
+  if(isOwned&&!item.amount){if(id.startsWith('sk_'))equipSkin(id);if(id.startsWith('th_'))equipTheme(id);return;}
+  if(item.price===0){if(!PD.ownedItems.includes(id))PD.ownedItems.push(id);savePD();buildShop();showNotif(`🎁 ${item.name}!`,'Free item claimed!',1500);sndCoin();return;}
+  if(item.curr==='coins'){if(PD.coins<item.price){showNotif('🪙 Not enough coins!','Watch an ad →',1500);sndErr();showAd('coins');return;}PD.coins-=item.price;}
+  else{if(PD.gems<item.price){showNotif('💎 Not enough gems!','Watch an ad →',1500);sndErr();showAd('gems');return;}PD.gems-=item.price;}
+  if(item.amount)addInv(id,item.amount);else if(!PD.ownedItems.includes(id))PD.ownedItems.push(id);
+  savePD();buildShop();sndBuy();spawnFX(210,400,'#ffd700',14,'burst');
+  showNotif(`✨ ${item.name} purchased!`,'Added to your collection!',1800);updateAllUI();
+  if(id.startsWith('sk_'))equipSkin(id);if(id.startsWith('th_'))equipTheme(id);
+}
+
+function adUnlockItem(id){
+  const allItems=[...SHOP_CATALOG.skins,...SHOP_CATALOG.themes,...SHOP_CATALOG.powerups];
+  const item=allItems.find(x=>x.id===id);if(!item)return;
+  itemAdQ=item;
+  AD_REWARDS.item.items=[{icon:item.icon,amt:item.name,lbl:'UNLOCK'},{icon:'🪙',amt:'+50 Coins',lbl:'BONUS'}];
+  showAd('item');
+}
+function buyCurrency(pack){
+  if(pack.curr==='ad')showAd('coins');
+  else if(pack.curr==='ad2')showAd('coins',()=>setTimeout(()=>showAd('coins'),300));
+  else showNotif('🛒 IAP Coming Soon','Use ads for now',1500);
+}
+
+function getPotion(id){return POTIONS.find(p=>p.id===id)||{hex:'#666',glow:'#888'};}
+function buildLiquid(stack,bX,bY,bW,bH,capN){
+  const sH=bH/capN;let liq='';
+  for(let i=0;i<capN;i++){
+    const cid=stack[i];if(!cid)continue;
+    const c=getPotion(cid);const sY=bY+bH-(i+1)*sH;const isTop=i===stack.length-1;
+    liq+=`<rect x="${bX+2}" y="${sY+0.5}" width="${bW-4}" height="${sH}" fill="${c.hex}" opacity="0.9"/>`;
+    if(isTop){liq+=`<ellipse cx="${bX+bW/2}" cy="${sY+3}" rx="${(bW-6)/2}" ry="4" fill="${c.hex}" opacity="0.55"/>`;liq+=`<ellipse cx="${bX+bW/2-8}" cy="${sY+5}" rx="3" ry="2" fill="rgba(255,255,255,0.42)"/>`;}
+    if(i>0&&stack[i]!==stack[i-1])liq+=`<rect x="${bX+2}" y="${sY+sH-1}" width="${bW-4}" height="1.5" fill="rgba(0,0,0,0.22)"/>`;
+  }
+  return liq;
+}
+
+function drawClassicBottle(stack,idx,isSel,theme){
+  const W=62,H=112,nW=18,nH=22,bW=54,bH=72;
+  const bX=(W-bW)/2,bY=nH+12,nX=(W-nW)/2;
+  const liq=buildLiquid(stack,bX,bY,bW,bH,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';const hasCork=done;
+  const bBody=theme.bottleBody||'rgba(18,10,45,0.72)';const bNeck=theme.bottleNeck||'rgba(18,10,45,0.78)';
+  const bStr=isSel?'#ffe066':(theme.bottleStroke||'rgba(140,100,255,0.28)');
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="7"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.18)"/><stop offset="35%" stop-color="rgba(255,255,255,0.04)"/><stop offset="100%" stop-color="rgba(255,255,255,0.09)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="22" ry="5" fill="rgba(0,0,0,0.38)"/><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="7" fill="${bBody}" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><rect x="${nX}" y="10" width="${nW}" height="${nH+5}" rx="5" fill="${bNeck}" stroke="${bStr}" stroke-width="1.5"/>${stack.length===CAP?`<rect x="${nX+2}" y="12" width="${nW-4}" height="${nH}" rx="3" fill="${getPotion(stack[CAP-1]).hex}" opacity="0.65" clip-path="url(#bc${idx})"/>`:''}<rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="7" fill="url(#gg${idx})" opacity="0.75"/><rect x="${nX}" y="10" width="${nW}" height="${nH+5}" rx="5" fill="url(#gg${idx})" opacity="0.6"/><rect x="${bX+5}" y="${bY+7}" width="5" height="${bH-14}" rx="3" fill="rgba(255,255,255,0.2)"/>${done?`<rect x="${bX-3}" y="${bY-2}" width="${bW+6}" height="${bH+4}" rx="9" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.85"/>`:''} ${hasCork?`<rect x="${nX-3}" y="3" width="${nW+6}" height="12" rx="5" fill="#d4a054" stroke="#a8763a" stroke-width="1.5"/><rect x="${nX+1}" y="5" width="5" height="8" rx="2" fill="rgba(255,255,255,0.25)"/>`:`<rect x="${nX+3}" y="8" width="${nW-6}" height="7" rx="3" fill="rgba(80,60,160,0.2)"/>`}</svg>`;
+}
+
+function drawRoundBottle(stack,idx,isSel,theme){
+  const W=62,H=112,bR=28,bCX=W/2,bCY=70,nH=24;
+  const liq=buildLiquid(stack,bCX-bR+2,bCY-bR+2,bR*2-4,bR*2-4,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';
+  const bStr=isSel?'#ffe066':(theme.bottleStroke||'rgba(140,100,255,0.28)');
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><circle cx="${bCX}" cy="${bCY}" r="${bR}"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.2)"/><stop offset="60%" stop-color="rgba(255,255,255,0.03)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="24" ry="5" fill="rgba(0,0,0,0.35)"/><circle cx="${bCX}" cy="${bCY}" r="${bR}" fill="${theme.bottleBody||'rgba(18,10,45,0.72)'}" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><circle cx="${bCX}" cy="${bCY}" r="${bR}" fill="url(#gg${idx})" opacity="0.7"/><rect x="${W/2-8}" y="${bCY-bR-nH}" width="16" height="${nH}" rx="6" fill="${theme.bottleNeck||'rgba(18,10,45,0.78)'}" stroke="${bStr}" stroke-width="1.5"/><rect x="${W/2-5}" y="${bCY-bR-nH+2}" width="4" height="${nH-4}" rx="2" fill="rgba(255,255,255,0.18)"/>${done?`<circle cx="${bCX}" cy="${bCY}" r="${bR+3}" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.85"/>`:''} ${stack.length===CAP?`<rect x="${W/2-6}" y="${bCY-bR-nH+2}" width="12" height="${nH-4}" rx="4" fill="${getPotion(stack[CAP-1]).hex}" opacity="0.6"/>`:`<rect x="${W/2-4}" y="${bCY-bR-nH+4}" width="8" height="${nH-8}" rx="3" fill="rgba(80,60,160,0.2)"/>`} ${done?`<rect x="${W/2-8}" y="${bCY-bR-nH-5}" width="16" height="10" rx="5" fill="#d4a054" stroke="#a8763a" stroke-width="1"/>`:''}</svg>`;
+}
+
+function drawCrystalBottle(stack,idx,isSel,theme){
+  const W=62,H=112,bW=44,bH=78;const bX=(W-bW)/2,bY=24,nH=20;
+  const liq=buildLiquid(stack,bX,bY,bW,bH,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';const bStr=isSel?'#ffe066':'rgba(150,220,255,0.5)';
+  const pts=`${bX},${bY+bH} ${bX+bW/4},${bY+bH+8} ${bX+bW/2},${bY+bH+14} ${bX+3*bW/4},${bY+bH+8} ${bX+bW},${bY+bH} ${bX+bW},${bY} ${bX},${bY}`;
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><polygon points="${pts}"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(150,220,255,0.25)"/><stop offset="50%" stop-color="rgba(150,220,255,0.05)"/><stop offset="100%" stop-color="rgba(150,220,255,0.15)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="20" ry="4.5" fill="rgba(0,0,0,0.35)"/><polygon points="${pts}" fill="rgba(8,25,45,0.75)" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><polygon points="${pts}" fill="url(#gg${idx})" opacity="0.8"/><rect x="${W/2-7}" y="${bY-nH}" width="14" height="${nH}" rx="4" fill="rgba(8,25,45,0.8)" stroke="${bStr}" stroke-width="1.5"/><line x1="${bX+6}" y1="${bY+6}" x2="${bX+6}" y2="${bY+bH-10}" stroke="rgba(150,220,255,0.3)" stroke-width="2" stroke-linecap="round"/>${done?`<polygon points="${pts}" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.9"/>`:''} ${stack.length===CAP?`<rect x="${W/2-5}" y="${bY-nH+2}" width="10" height="${nH-4}" rx="3" fill="${getPotion(stack[CAP-1]).hex}" opacity="0.65"/>`:`<rect x="${W/2-3}" y="${bY-nH+4}" width="6" height="${nH-8}" rx="2" fill="rgba(80,160,200,0.2)"/>`} ${done?`<rect x="${W/2-7}" y="${bY-nH-6}" width="14" height="10" rx="4" fill="#d4a054" stroke="#a8763a" stroke-width="1"/>`:''}</svg>`;
+}
+
+function drawSkullBottle(stack,idx,isSel,theme){
+  const W=62,H=112,bW=52,bH=68;const bX=(W-bW)/2,bY=28;
+  const liq=buildLiquid(stack,bX,bY,bW,bH,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';const bStr=isSel?'#ffe066':'rgba(200,80,80,0.4)';
+  const nX=W/2-8,nY=bY-22;
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="6"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.12)"/><stop offset="100%" stop-color="rgba(255,255,255,0.04)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="22" ry="5" fill="rgba(0,0,0,0.38)"/><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="6" fill="rgba(15,5,5,0.82)" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="6" fill="url(#gg${idx})" opacity="0.6"/><rect x="${nX}" y="${nY}" width="16" height="24" rx="4" fill="rgba(15,5,5,0.82)" stroke="${bStr}" stroke-width="1.5"/><ellipse cx="${W/2}" cy="${nY-8}" rx="16" ry="14" fill="rgba(15,5,5,0.9)" stroke="${bStr}" stroke-width="1.5"/><ellipse cx="${W/2-6}" cy="${nY-10}" rx="4" ry="4" fill="${isSel?'#ffe066':'rgba(200,80,80,0.6)'}"/><ellipse cx="${W/2+6}" cy="${nY-10}" rx="4" ry="4" fill="${isSel?'#ffe066':'rgba(200,80,80,0.6)'}"/><rect x="${W/2-5}" y="${nY-1}" width="3" height="3" rx="1" fill="rgba(200,80,80,0.5)"/><rect x="${W/2}" y="${nY-1}" width="3" height="3" rx="1" fill="rgba(200,80,80,0.5)"/>${done?`<rect x="${bX-2}" y="${bY-2}" width="${bW+4}" height="${bH+4}" rx="8" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.85"/>`:''}</svg>`;
+}
+
+function drawPotionBottle(stack,idx,isSel,theme){
+  const W=62,H=112,bW=40,bH=70;const bX=(W-bW)/2,bY=22,nW=12,nH=25,nX=(W-nW)/2;
+  const liq=buildLiquid(stack,bX,bY,bW,bH,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';const bStr=isSel?'#ffe066':(theme.bottleStroke||'rgba(140,100,255,0.28)');
+  const bodyPath=`M${bX},${bY} Q${bX-10},${bY+bH/2} ${bX},${bY+bH} L${bX+bW},${bY+bH} Q${bX+bW+10},${bY+bH/2} ${bX+bW},${bY} Z`;
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><path d="${bodyPath}"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,255,255,0.22)"/><stop offset="40%" stop-color="rgba(255,255,255,0.04)"/><stop offset="100%" stop-color="rgba(255,255,255,0.1)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="20" ry="4.5" fill="rgba(0,0,0,0.35)"/><path d="${bodyPath}" fill="${theme.bottleBody||'rgba(18,10,45,0.72)'}" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><path d="${bodyPath}" fill="url(#gg${idx})" opacity="0.75"/><rect x="${nX}" y="${bY-nH}" width="${nW}" height="${nH+4}" rx="4" fill="${theme.bottleNeck||'rgba(18,10,45,0.78)'}" stroke="${bStr}" stroke-width="1.5"/><rect x="${nX+2}" y="${bY-nH+4}" width="3" height="${nH-6}" rx="2" fill="rgba(255,255,255,0.2)"/>${done?`<path d="${bodyPath}" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.85"/>`:''} ${stack.length===CAP?`<rect x="${nX+2}" y="${bY-nH+2}" width="${nW-4}" height="${nH}" rx="3" fill="${getPotion(stack[CAP-1]).hex}" opacity="0.65"/>`:`<rect x="${nX+2}" y="${bY-nH+4}" width="${nW-4}" height="${nH-6}" rx="3" fill="rgba(80,60,160,0.18)"/>`} ${done?`<rect x="${nX-3}" y="${bY-nH-6}" width="${nW+6}" height="10" rx="5" fill="#d4a054" stroke="#a8763a" stroke-width="1"/>`:''}</svg>`;
+}
+
+function drawLanternBottle(stack,idx,isSel,theme){
+  const W=62,H=112,bW=46,bH=62;const bX=(W-bW)/2,bY=28,nH=18;
+  const liq=buildLiquid(stack,bX,bY,bW,bH,CAP);
+  const done=stack.length===CAP&&stack.every(c=>c===stack[0]);
+  const dC=done?getPotion(stack[0]).hex:'none';
+  const topColor=stack.length>0?getPotion(stack[stack.length-1]).hex:'#ffaa00';
+  const bStr=isSel?'#ffe066':'rgba(255,200,80,0.45)';
+  return `<svg width="${W}" height="${H+12}" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg" overflow="visible"><defs><clipPath id="bc${idx}"><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="5"/></clipPath><linearGradient id="gg${idx}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="rgba(255,200,80,0.18)"/><stop offset="60%" stop-color="rgba(255,200,80,0.04)"/></linearGradient></defs><ellipse cx="${W/2}" cy="${H+10}" rx="21" ry="5" fill="rgba(0,0,0,0.38)"/>${stack.length>0?`<ellipse cx="${W/2}" cy="${bY+bH/2}" rx="${bW/2+6}" ry="${bH/2+6}" fill="${topColor}" opacity="0.08"/>`:''}<rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="5" fill="rgba(18,12,4,0.82)" stroke="${bStr}" stroke-width="${isSel?2.5:1.5}"/><g clip-path="url(#bc${idx})">${liq}</g><rect x="${bX}" y="${bY}" width="${bW}" height="${bH}" rx="5" fill="url(#gg${idx})" opacity="0.7"/><line x1="${W/2}" y1="${bY}" x2="${W/2}" y2="${bY+bH}" stroke="${bStr}" stroke-width="1.5"/><line x1="${bX}" y1="${bY+bH/3}" x2="${bX+bW}" y2="${bY+bH/3}" stroke="${bStr}" stroke-width="1"/><line x1="${bX}" y1="${bY+2*bH/3}" x2="${bX+bW}" y2="${bY+2*bH/3}" stroke="${bStr}" stroke-width="1"/><rect x="${W/2-6}" y="${bY-nH}" width="12" height="${nH}" rx="4" fill="rgba(18,12,4,0.82)" stroke="${bStr}" stroke-width="1.5"/><path d="M${W/2},${bY-nH} Q${W/2+12},${bY-nH-8} ${W/2+10},${bY-nH-18}" fill="none" stroke="${bStr}" stroke-width="2" stroke-linecap="round"/>${done?`<rect x="${bX-2}" y="${bY-2}" width="${bW+4}" height="${bH+4}" rx="7" fill="none" stroke="${dC}" stroke-width="2.5" opacity="0.88"/>`:''} ${stack.length===CAP?`<rect x="${W/2-4}" y="${bY-nH+2}" width="8" height="${nH-4}" rx="3" fill="${getPotion(stack[CAP-1]).hex}" opacity="0.65"/>`:`<rect x="${W/2-3}" y="${bY-nH+3}" width="6" height="${nH-6}" rx="2" fill="rgba(255,180,0,0.18)"/>`} ${done?`<rect x="${W/2-6}" y="${bY-nH-6}" width="12" height="9" rx="4" fill="#d4a054" stroke="#a8763a" stroke-width="1"/>`:''}</svg>`;
+}
+
+function buildBottlePreviewSVG(skinId){
+  const sampleStack=['crimson','azure','emerald'];
+  const theme=THEMES[PD.equippedTheme]||THEMES.th_classic;
+  const renderer=SKIN_RENDERERS[skinId]||drawClassicBottle;
+  const svg=renderer(sampleStack,`prev_${skinId}`,false,theme);
+  return `<div style="transform:scale(0.65);transform-origin:center center;width:62px;height:112px;">${svg}</div>`;
+}
+
+function bottleSVG(stack,idx,isSel){
+  const theme=THEMES[PD.equippedTheme]||THEMES.th_classic;
+  const renderer=SKIN_RENDERERS[PD.equippedSkin]||drawClassicBottle;
+  return renderer(stack,idx,isSel,theme);
+}
+
+let bottles=[],selBottle=null,gHist=[],gameActive=false;
+let gMoves=0,gExp=0,gUndos=3,gFlasks=2,gShuffles=1;
+let levelColors=[],explodePairs=[],curLevel=1,isDaily=false;
+let shieldOn=false,hintOn=false;
+
+function getWorld(lvl){return WORLDS.find(w=>lvl>=w.levels[0]&&lvl<=w.levels[1])||WORLDS[0];}
+
+function generateLevel(lvl){
+  const world=getWorld(lvl);
+  const numColors=Math.min(world.colors+Math.floor((lvl-world.levels[0])/2),8);
+  const empty=lvl<=3?3:lvl<=8?2:1;
+  const shuffled=[...POTIONS].sort(()=>Math.random()-0.5);
+  levelColors=shuffled.slice(0,numColors);
+  explodePairs=[];
+  if(world.explode){
+    levelColors.forEach(p=>{
+      p.explodesWith.forEach(eid=>{
+        if(levelColors.find(c=>c.id===eid)){
+          const k=[p.id,eid].sort().join('-');
+          if(!explodePairs.includes(k))explodePairs.push(k);
+        }
+      });
+    });
+  }
+  const sol=[];levelColors.forEach(c=>{for(let i=0;i<CAP;i++)sol.push(c.id);});
+  for(let i=sol.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sol[i],sol[j]]=[sol[j],sol[i]];}
+  bottles=[];
+  for(let i=0;i<numColors;i++){const b=[];for(let j=0;j<CAP;j++)b.push(sol[i*CAP+j]);bottles.push(b);}
+  for(let i=0;i<empty;i++)bottles.push([]);
+  bottles.sort(()=>Math.random()-0.5);
+  gMoves=0;gExp=0;selBottle=null;hintOn=false;
+  shieldOn=inv('pu_shield')>0;
+  if(shieldOn)document.getElementById('gShldBdg').style.display='block';
+  gHist=[];gameActive=true;
+  saveH();render();updateGameUI();
+}
+
+function launchLevel(lvl,daily=false){
+  curLevel=lvl;isDaily=daily;
+  if(!daily)PD.currentLevel=lvl;
+  gUndos=3;gFlasks=2;gShuffles=1;
+  applyTheme(PD.equippedTheme);
+  generateLevel(lvl);
+  openPage('gamePage');
+  document.getElementById('winOverlay').style.display='none';
+  document.getElementById('gLvlV').textContent=daily?'🌙':lvl;
+  flashScreen(THEMES[PD.equippedTheme]?.glow||'rgba(100,0,255,0.4)');
+  setTimeout(()=>{spawnFX(210,400,THEMES[PD.equippedTheme]?.a||'#7700ff',18,'burst');spawnFX(210,400,'#ffd700',10,'burst');},200);
+  showNotif(daily?'🌙 DAILY SPELL':`🧙 LEVEL ${lvl}`,`${levelColors.length} potions to sort!`,1800);
+  // Show interstitial occasionally
+  maybeShowInterstitial();
+}
+function quickPlay(){launchLevel(PD.highestUnlocked||1);}
+function nextLevel(){curLevel++;launchLevel(curLevel);}
+function replayLevel(){launchLevel(curLevel,isDaily);}
+
+function render(){
+  const area=document.getElementById('bottleArea');area.innerHTML='';
+  const n=bottles.length;const cols=n<=6?3:n<=9?4:5;
+  area.style.gap=cols>=5?'7px':'10px';
+  bottles.forEach((stack,i)=>{
+    const div=document.createElement('div');
+    div.className='bottle';div.style.width=(cols>=5?50:62)+'px';
+    if(i===selBottle)div.classList.add('selected');
+    div.innerHTML=bottleSVG(stack,i,i===selBottle);
+    div.addEventListener('click',()=>onBottle(i));
+    div.addEventListener('touchstart',e=>{e.preventDefault();onBottle(i);},{passive:false});
+    area.appendChild(div);
+  });
+  updateGameUI();
+}
+
+function onBottle(idx){
+  if(!gameActive)return;
+  if(hintOn){hintOn=false;document.querySelectorAll('.bottle').forEach(b=>b.classList.remove('hint-glow'));}
+  if(selBottle===null){
+    if(!bottles[idx].length){shakeB(idx);sndErr();return;}
+    if(bottles[idx].length===CAP&&bottles[idx].every(c=>c===bottles[idx][0])){showNotif('✅ Already done!','',700);return;}
+    selBottle=idx;sndSel();render();
+  } else {
+    if(selBottle===idx){selBottle=null;render();return;}
+    const r=tryPour(selBottle,idx);
+    if(r==='ok'){
+      gMoves++;sndPour();
+      const els=document.querySelectorAll('.bottle');
+      if(els[idx]){
+        const rc=els[idx].getBoundingClientRect(),gc=document.getElementById('gc').getBoundingClientRect();
+        const clr=getPotion(bottles[idx][bottles[idx].length-1]).hex;
+        for(let i=0;i<8;i++)fxParts.push({x:rc.left-gc.left+rc.width/2+(Math.random()-0.5)*18,y:rc.top-gc.top+38,vx:(Math.random()-0.5)*2,vy:-Math.random()*3.5-0.5,color:clr,size:Math.random()*5+1.5,life:28+Math.random()*18,maxLife:46,gravity:0.12,type:'pour'});
+      }
+      selBottle=null;saveH();render();checkWin();checkStuck();
+    } else if(r==='explode'){
+      if(shieldOn){
+        shieldOn=false;document.getElementById('gShldBdg').style.display='none';
+        sndShield();flashScreen('rgba(0,200,255,0.4)');
+        showNotif('🛡️ SHIELD BLOCKED!','Explosion absorbed!',1500);
+        spawnFX(210,400,'#00ccff',18,'burst');
+        selBottle=null;render();
+      } else {
+        gExp++;gMoves++;PD.stats.explosions++;sndExp();triggerExplosion(selBottle,idx);selBottle=null;
+      }
+    } else {sndErr();shakeB(idx);selBottle=null;render();}
+  }
+}
+
+function tryPour(from,to){
+  const src=bottles[from],dst=bottles[to];
+  if(!src.length)return'invalid';if(dst.length>=CAP)return'invalid';
+  if(src.length===CAP&&src.every(c=>c===src[0]))return'invalid';
+  const tS=src[src.length-1],tD=dst.length?dst[dst.length-1]:null;
+  if(tD!==null&&tD!==tS){if(explodePairs.includes([tS,tD].sort().join('-')))return'explode';return'invalid';}
+  const space=CAP-dst.length;let pc=0;
+  for(let i=src.length-1;i>=0&&src[i]===tS;i--)pc++;
+  const ap=Math.min(pc,space);
+  for(let i=0;i<ap;i++)dst.push(src.pop());
+  return'ok';
+}
+
+function triggerExplosion(from,to){
+  const gc=document.getElementById('gc').getBoundingClientRect();
+  [from,to].forEach(idx=>{
+    const els=document.querySelectorAll('.bottle');if(!els[idx])return;
+    const r=els[idx].getBoundingClientRect();
+    const cx=r.left-gc.left+r.width/2,cy=r.top-gc.top+r.height/2;
+    spawnFX(cx,cy,'#ff4400',30,'explode');spawnFX(cx,cy,'#ffcc00',14,'burst');
+  });
+  flashScreen('rgba(255,60,0,0.55)');
+  if(bottles[from].length)bottles[from].pop();if(bottles[to].length)bottles[to].pop();
+  setTimeout(()=>{
+    const els=document.querySelectorAll('.bottle');
+    [from,to].forEach(i=>{if(els[i]){els[i].classList.add('exploding');setTimeout(()=>render(),650);}});
+    showNotif('💥 EXPLOSION!','Incompatible potions!',1600);updateGameUI();
+  },60);
+}
+
+function checkWin(){
+  const done=bottles.every(b=>b.length===0||(b.length===CAP&&b.every(c=>c===b[0])));
+  if(!done)return;
+  gameActive=false;sndWin();
+  PD.stats.solved++;PD.stats.moves+=gMoves;savePD();
+  const stars=gExp===0?3:gExp<=2?2:1;
+  const base=Math.max(100,800-gMoves*4+(3-gExp)*200+curLevel*40);
+  PD.totalScore+=base;
+  if(!isDaily){
+    const prev=PD.levelData[curLevel];
+    if(!prev||stars>prev.stars||base>(prev.score||0))PD.levelData[curLevel]={stars,moves:gMoves,explosions:gExp,score:base};
+    if(curLevel>=PD.highestUnlocked)PD.highestUnlocked=Math.min(curLevel+1,50);
+    WORLDS.forEach(w=>{
+      if(curLevel===w.levels[1]){
+        const nw=WORLDS.find(x=>x.id===w.id+1);
+        if(nw&&nw.unlockCoins===0&&nw.unlockGems===0&&!PD.unlockedWorlds.includes(nw.id)){
+          PD.unlockedWorlds.push(nw.id);
+          setTimeout(()=>showNotif(`🔓 ${nw.emoji} ${nw.name}!`,'New world unlocked!',2500),1500);
+        }
+      }
+    });
+  } else {
+    const today=new Date().toDateString();PD.dailyDate=today;
+    const mul=PD.dailyDouble?2:1;
+    PD.coins+=400*mul;if(gExp===0)PD.gems+=2*mul;
+    PD.coins+=PD.streak*100;PD.dailyDouble=false;
+  }
+  const coinR=isDaily?400+PD.streak*100:30+curLevel*8;
+  const gemR=gExp===0?(isDaily?2:1):0;
+  if(!isDaily){PD.coins+=coinR;if(gemR)PD.gems+=gemR;}
+  lastCoins=coinR;lastGems=gemR;
+  PD.pendingDouble={coins:coinR,gems:gemR};
+  savePD();updateAllUI();
+  for(let i=0;i<10;i++)setTimeout(()=>{
+    spawnFX(60+Math.random()*300,150+Math.random()*400,['#ffd700','#ff00cc','#00ccff','#88ff00','#ff6600'][Math.floor(Math.random()*5)],13,'burst');
+    spawnStars(80+Math.random()*260,200+Math.random()*350,9);
+  },i*150);
+  setTimeout(()=>{
+    document.getElementById('woStars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+    document.getElementById('woBox').innerHTML=`<div class="woRow"><span>BASE SCORE</span><span>+${base}</span></div><div class="woRow"><span>COINS</span><span>+${coinR}🪙</span></div>${gemR?`<div class="woRow"><span>GEM BONUS</span><span>+${gemR}💎</span></div>`:''}${gExp===0?'<div class="woRow"><span>💎 NO EXPLOSIONS</span><span>PERFECT!</span></div>':''}<div class="woRow"><span>MOVES</span><span>${gMoves}</span></div>`;
+    document.getElementById('nextBtn').style.display=isDaily?'none':'block';
+    document.getElementById('winOverlay').style.display='flex';
+  },1600);
+  sndFinish();
+}
+
+function checkStuck(){
+  if(!gameActive)return;
+  for(let f=0;f<bottles.length;f++){
+    if(!bottles[f].length)continue;
+    if(bottles[f].length===CAP&&bottles[f].every(c=>c===bottles[f][0]))continue;
+    for(let t=0;t<bottles.length;t++){
+      if(f===t||bottles[t].length>=CAP)continue;
+      const tF=bottles[f][bottles[f].length-1];
+      const tT=bottles[t].length?bottles[t][bottles[t].length-1]:null;
+      if(tT===null||tT===tF){if(!explodePairs.includes([tF,tT||''].sort().join('-')))return;}
+    }
+  }
+  setTimeout(()=>{if(gameActive)document.getElementById('stuckModal').classList.add('open');},800);
+}
+
+function saveH(){gHist.push(JSON.parse(JSON.stringify(bottles)));if(gHist.length>35)gHist.shift();}
+
+function undoMove(){
+  if(!gameActive||gHist.length<2||gUndos<=0){sndErr();showNotif('↩️ No undos!','Watch an ad for more',1200);return;}
+  gHist.pop();bottles=JSON.parse(JSON.stringify(gHist[gHist.length-1]));
+  gUndos--;gMoves=Math.max(0,gMoves-1);PD.stats.hints++;
+  selBottle=null;sndUndo();render();
+  floatTxt('↩️ UNDO','#aaaaff',175,380);
+}
+
+function showHint(){
+  if(!gameActive)return;PD.stats.hints++;
+  for(let f=0;f<bottles.length;f++){
+    if(!bottles[f].length)continue;
+    if(bottles[f].length===CAP&&bottles[f].every(c=>c===bottles[f][0]))continue;
+    for(let t=0;t<bottles.length;t++){
+      if(f===t||bottles[t].length>=CAP)continue;
+      const tF=bottles[f][bottles[f].length-1];
+      const tT=bottles[t].length?bottles[t][bottles[t].length-1]:null;
+      if(tT===null||tT===tF){
+        if(explodePairs.includes([tF,tT||''].sort().join('-')))continue;
+        hintOn=true;
+        const els=document.querySelectorAll('.bottle');
+        if(els[f])els[f].classList.add('hint-glow');if(els[t])els[t].classList.add('hint-glow');
+        showNotif('💡 HINT',`Bottle ${f+1} → Bottle ${t+1}`,2500);return;
+      }
+    }
+  }
+  showNotif('🧙 WIZARD','No obvious move!',1500);
+}
+
+function addFlask(){
+  if(!gameActive||gFlasks<=0){sndErr();showNotif('🫙 No flasks!','Watch an ad for more',1200);return;}
+  bottles.push([]);gFlasks--;saveH();render();
+  showNotif('🫙 FLASK ADDED',`${gFlasks} remaining`,1000);
+  spawnFX(210,450,'#aaaaff',10,'burst');
+}
+
+function shufflePotions(){
+  if(!gameActive||gShuffles<=0){sndErr();showNotif('🔀 No shuffles!','Watch an ad for more',1200);return;}
+  const all=[];bottles.forEach(b=>b.forEach(c=>all.push(c)));
+  for(let i=all.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[all[i],all[j]]=[all[j],all[i]];}
+  let k=0;bottles=bottles.map(b=>b.length>0?all.slice(k,k+=b.length):[]);
+  gShuffles--;gMoves++;saveH();render();
+  flashScreen(THEMES[PD.equippedTheme]?.glow||'rgba(100,0,255,0.4)');
+  spawnFX(210,400,THEMES[PD.equippedTheme]?.a||'#7700ff',18,'burst');
+  showNotif('🔀 SHUFFLED!','Potions rearranged',1200);
+}
+
+function shakeB(idx){const els=document.querySelectorAll('.bottle');if(els[idx]){els[idx].classList.add('shake');setTimeout(()=>els[idx].classList.remove('shake'),450);}}
+function pauseGame(){if(gameActive)document.getElementById('pauseModal').classList.add('open');}
+function resumeGame(){closeModal('pauseModal');}
+
+function updateGameUI(){
+  document.getElementById('gScore').textContent=PD.totalScore;
+  document.getElementById('gMovV').textContent=gMoves;
+  document.getElementById('gCoinV').textContent=PD.coins+'🪙';
+  document.getElementById('gExpV').textContent=gExp;
+  document.getElementById('gUndV').textContent=gUndos;
+  document.getElementById('gFlaV').textContent=gFlasks;
+  document.getElementById('gUndoCnt').textContent=gUndos;
+  document.getElementById('gFlaskCnt').textContent=gFlasks;
+  document.getElementById('gShufCnt').textContent=gShuffles;
+  ['gUndoBtn','gFlaskBtn','gShufBtn'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('disabled',[gUndos,gFlasks,gShuffles][i]<=0);
+  });
+  const total=bottles.filter(b=>b.length>0).length;
+  const comp=bottles.filter(b=>b.length===CAP&&b.every(c=>c===b[0])).length;
+  document.getElementById('gProgBar').style.width=(total>0?(comp/total)*100:0)+'%';
+}
+
+function openStats(){
+  document.getElementById('statsContent').innerHTML=`
+    <div class="woRow"><span>Puzzles Solved</span><span>${PD.stats.solved}</span></div>
+    <div class="woRow"><span>Total Moves</span><span>${PD.stats.moves}</span></div>
+    <div class="woRow"><span>Explosions</span><span>${PD.stats.explosions}</span></div>
+    <div class="woRow"><span>Hints Used</span><span>${PD.stats.hints}</span></div>
+    <div class="woRow"><span>Ads Watched</span><span>${PD.stats.adsWatched}</span></div>
+    <div class="woRow"><span>Login Streak</span><span>${PD.streak}🔥</span></div>
+    <div class="woRow"><span>Total Score</span><span>${PD.totalScore.toLocaleString()}</span></div>
+    <div class="woRow"><span>Coins</span><span>${PD.coins}🪙</span></div>
+    <div class="woRow"><span>Gems</span><span>${PD.gems}💎</span></div>
+    <div class="woRow"><span>Skin</span><span>${SHOP_CATALOG.skins.find(s=>s.id===PD.equippedSkin)?.name||'Classic'}</span></div>
+    <div class="woRow"><span>Theme</span><span>${SHOP_CATALOG.themes.find(t=>t.id===PD.equippedTheme)?.name||'Classic'}</span></div>
+  `;
+  document.getElementById('statsModal').classList.add('open');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+if(!PD.unlockedWorlds.includes(1))PD.unlockedWorlds.push(1);
+if(!PD.ownedItems.includes('sk_default'))PD.ownedItems.push('sk_default');
+if(!PD.ownedItems.includes('th_classic'))PD.ownedItems.push('th_classic');
+savePD();
+
+applyTheme(PD.equippedTheme);
+updateHomeUI();
+updateCountdown();
+spawnFX(210,390,'#7700ff',18,'burst');
+spawnFX(210,390,'#ffd700',10,'burst');
+
+// Initialize AdMob when DOM is ready
+document.addEventListener('DOMContentLoaded', initAdMob);
+// Also init when Capacitor device is ready (Android)
+document.addEventListener('deviceready', initAdMob);
+
+// Initialize AdSense banner (web only)
+try{(adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}
+</script>
+</body>
+</html>
