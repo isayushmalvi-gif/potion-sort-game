@@ -1094,6 +1094,7 @@ let PD=(()=>{
     dailyDouble:false,
     stats:{solved:0,moves:0,explosions:0,hints:0,adsWatched:0},
     adsForWorld:{},
+    itemAdsWatched:{},  // ✅ ADD THIS
     pendingDouble:null,
   };
 })();
@@ -1352,46 +1353,280 @@ function buildShop(){
   if(activeShopTab===3)buildCurrencySection(scroll);
 }
 
+// ════════════════════════════════════════════════════════════════
+//  SHOP SECTIONS — FIXED AD PROGRESS TRACKING
+// ════════════════════════════════════════════════════════════════
+
 function buildPowerupSection(container){
   SHOP_CATALOG.powerups.forEach(item=>{
-    const count=inv(item.id);
-    const card=createBaseCard(item,false,false);
-    const tagHTML=buildTags(item.tags);
-    const priceStr=item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
-    card.innerHTML=`<div class="siIcon">${item.icon}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div class="siBottom">${count>0?`<div class="siPrice gold">×${count} owned</div><button class="equipBtn" onclick="event.stopPropagation();buyItem('${item.id}')" style="margin-left:8px;">+MORE</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
-    card.addEventListener('click',()=>buyItem(item.id));
+
+    // ✅ Check BOTH inventory count AND ownedItems array
+    const count     = inv(item.id);
+    const isOwned   = count > 0 || PD.ownedItems.includes(item.id);
+    const card      = createBaseCard(item, isOwned, false);
+    const tagHTML   = buildTags(item.tags);
+    const priceStr  = item.curr==='gems' ? `💎 ${item.price}` : `🪙 ${item.price}`;
+
+    // ✅ Ad progress tracking
+    const adsWatched  = (PD.itemAdsWatched && PD.itemAdsWatched[item.id]) || 0;
+    const adsRequired = item.adAlt || 0;
+    const adsLeft     = Math.max(0, adsRequired - adsWatched);
+
+    card.innerHTML=`
+      ${isOwned ? '<div class="siOwnTag ownGrn">OWNED</div>' : ''}
+      <div class="siIcon">${item.icon}</div>
+      <div class="siInfo">
+        <div class="siName">${item.name}</div>
+        ${tagHTML ? `<div class="siTags">${tagHTML}</div>` : ''}
+        <div class="siDesc">${item.desc}</div>
+        <div class="siBottom">
+          ${isOwned
+            ? `<div class="siPrice gold">
+                 ${count > 0 ? `×${count} owned` : '✅ Owned'}
+               </div>
+               ${count > 0
+                 ? `<button class="equipBtn"
+                      onclick="event.stopPropagation();buyItem('${item.id}')"
+                      style="margin-left:8px;">+MORE</button>`
+                 : ''
+               }`
+            : `<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>
+               ${adsRequired > 0
+                 ? `<div class="siAdBtn"
+                      onclick="event.stopPropagation();adUnlockItem('${item.id}')"
+                      style="position:relative;">
+                      📺 ${adsWatched}/${adsRequired} ads
+                      ${adsWatched > 0
+                        ? `<span style="
+                            position:absolute;top:-6px;right:-6px;
+                            background:#ff6600;color:#fff;
+                            font-size:8px;border-radius:50%;
+                            width:14px;height:14px;
+                            display:flex;align-items:center;
+                            justify-content:center;font-weight:bold;">
+                            ${adsLeft}
+                          </span>`
+                        : ''
+                      }
+                    </div>`
+                 : ''
+               }`
+          }
+        </div>
+        ${!isOwned && adsRequired > 0 && adsWatched > 0
+          ? `<div style="margin-top:6px;">
+               <div style="background:rgba(255,100,0,0.15);border-radius:6px;
+                           height:6px;overflow:hidden;">
+                 <div style="
+                   width:${Math.round((adsWatched/adsRequired)*100)}%;
+                   height:100%;
+                   background:linear-gradient(90deg,#ff6600,#ffcc00);
+                   border-radius:6px;transition:width 0.3s;">
+                 </div>
+               </div>
+               <div style="font-size:8px;color:rgba(255,150,0,0.7);
+                           margin-top:3px;letter-spacing:1px;">
+                 ${adsLeft > 0
+                   ? `${adsLeft} more ad${adsLeft>1?'s':''} to unlock`
+                   : '✅ Ready to unlock!'
+                 }
+               </div>
+             </div>`
+          : ''
+        }
+      </div>`;
+
+    card.addEventListener('click', ()=>buyItem(item.id));
     container.appendChild(card);
   });
 }
+
+
+// ────────────────────────────────────────────────────────────────
 
 function buildSkinSection(container){
   SHOP_CATALOG.skins.forEach(item=>{
-    const isOwned=PD.ownedItems.includes(item.id);
-    const isEquipped=PD.equippedSkin===item.id;
-    const card=createBaseCard(item,isOwned,isEquipped);
-    const previewSVG=buildBottlePreviewSVG(item.id);
-    const tagHTML=buildTags(item.tags);
-    const priceStr=item.price===0?'FREE':item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
-    card.innerHTML=`${isEquipped?'<div class="siOwnTag ownGold">✓ ON</div>':(isOwned?'<div class="siOwnTag ownGrn">OWNED</div>':'')}<div class="siPreview">${previewSVG}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div class="siBottom">${isEquipped?`<button class="equipBtn equipped">✓ EQUIPPED</button>`:isOwned?`<button class="equipBtn" onclick="event.stopPropagation();equipSkin('${item.id}')">EQUIP</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
-    if(!isEquipped)card.addEventListener('click',()=>isOwned?equipSkin(item.id):buyItem(item.id));
+    const isOwned   = PD.ownedItems.includes(item.id);
+    const isEquipped= PD.equippedSkin === item.id;
+    const card      = createBaseCard(item, isOwned, isEquipped);
+    const previewSVG= buildBottlePreviewSVG(item.id);
+    const tagHTML   = buildTags(item.tags);
+    const priceStr  = item.price===0 ? 'FREE' : item.curr==='gems' ? `💎 ${item.price}` : `🪙 ${item.price}`;
+
+    // ✅ Ad progress tracking
+    const adsWatched  = (PD.itemAdsWatched && PD.itemAdsWatched[item.id]) || 0;
+    const adsRequired = item.adAlt || 0;
+    const adsLeft     = Math.max(0, adsRequired - adsWatched);
+
+    card.innerHTML=`
+      ${isEquipped
+        ? '<div class="siOwnTag ownGold">✓ ON</div>'
+        : isOwned ? '<div class="siOwnTag ownGrn">OWNED</div>' : ''
+      }
+      <div class="siPreview">${previewSVG}</div>
+      <div class="siInfo">
+        <div class="siName">${item.name}</div>
+        ${tagHTML ? `<div class="siTags">${tagHTML}</div>` : ''}
+        <div class="siDesc">${item.desc}</div>
+        <div class="siBottom">
+          ${isEquipped
+            ? `<button class="equipBtn equipped">✓ EQUIPPED</button>`
+            : isOwned
+            ? `<button class="equipBtn"
+                 onclick="event.stopPropagation();equipSkin('${item.id}')">
+                 EQUIP
+               </button>`
+            : `<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>
+               ${adsRequired > 0
+                 ? `<div class="siAdBtn"
+                      onclick="event.stopPropagation();adUnlockItem('${item.id}')"
+                      style="position:relative;">
+                      📺 ${adsWatched}/${adsRequired} ads
+                      ${adsWatched > 0
+                        ? `<span style="
+                            position:absolute;top:-6px;right:-6px;
+                            background:#ff6600;color:#fff;
+                            font-size:8px;border-radius:50%;
+                            width:14px;height:14px;
+                            display:flex;align-items:center;justify-content:center;
+                            font-weight:bold;">
+                            ${adsLeft}
+                          </span>`
+                        : ''
+                      }
+                    </div>`
+                 : ''
+               }`
+          }
+        </div>
+        ${!isOwned && adsRequired > 0 && adsWatched > 0
+          ? `<div style="margin-top:6px;">
+               <div style="background:rgba(0,150,255,0.15);border-radius:6px;height:6px;overflow:hidden;">
+                 <div style="
+                   width:${Math.round((adsWatched/adsRequired)*100)}%;
+                   height:100%;
+                   background:linear-gradient(90deg,#0088ff,#00ccff);
+                   border-radius:6px;
+                   transition:width 0.3s;">
+                 </div>
+               </div>
+               <div style="font-size:8px;color:rgba(0,200,255,0.7);margin-top:3px;letter-spacing:1px;">
+                 ${adsLeft > 0
+                   ? `${adsLeft} more ad${adsLeft>1?'s':''} to unlock`
+                   : '✅ Ready to unlock!'
+                 }
+               </div>
+             </div>`
+          : ''
+        }
+      </div>`;
+
+    if(!isEquipped) card.addEventListener('click', ()=>isOwned ? equipSkin(item.id) : buyItem(item.id));
     container.appendChild(card);
   });
 }
 
+// ────────────────────────────────────────────────────────────────
+
 function buildThemeSection(container){
   SHOP_CATALOG.themes.forEach(item=>{
-    const isOwned=PD.ownedItems.includes(item.id);
-    const isEquipped=PD.equippedTheme===item.id;
-    const card=createBaseCard(item,isOwned,isEquipped);
-    const td=THEMES[item.id]||THEMES.th_classic;
-    const tagHTML=buildTags(item.tags);
-    const priceStr=item.price===0?'FREE':item.curr==='gems'?`💎 ${item.price}`:`🪙 ${item.price}`;
-    const swatchStyle=`background:linear-gradient(135deg,${td.a},${td.b},${td.c});border-radius:10px;width:50px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;${isEquipped?`border:2px solid var(--gold);box-shadow:0 0 12px rgba(255,215,0,0.5);`:''}`;
-    card.innerHTML=`${isEquipped?'<div class="siOwnTag ownGold">✓ ON</div>':(isOwned?'<div class="siOwnTag ownGrn">OWNED</div>':'')}<div style="${swatchStyle}">${item.icon}</div><div class="siInfo"><div class="siName">${item.name}</div>${tagHTML?`<div class="siTags">${tagHTML}</div>`:''}<div class="siDesc">${item.desc}</div><div style="display:flex;gap:5px;margin-bottom:7px;"><div style="width:18px;height:18px;border-radius:50%;background:${td.a};"></div><div style="width:18px;height:18px;border-radius:50%;background:${td.b};"></div><div style="width:18px;height:18px;border-radius:50%;background:${td.c};"></div></div><div class="siBottom">${isEquipped?`<button class="equipBtn equipped">✓ EQUIPPED</button>`:isOwned?`<button class="equipBtn" onclick="event.stopPropagation();equipTheme('${item.id}')">EQUIP</button>`:`<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>${item.adAlt?`<div class="siAdBtn" onclick="event.stopPropagation();adUnlockItem('${item.id}')">📺 ${item.adAlt} ads</div>`:''}`}</div></div>`;
-    if(!isEquipped)card.addEventListener('click',()=>isOwned?equipTheme(item.id):buyItem(item.id));
+    const isOwned   = PD.ownedItems.includes(item.id);
+    const isEquipped= PD.equippedTheme === item.id;
+    const card      = createBaseCard(item, isOwned, isEquipped);
+    const td        = THEMES[item.id] || THEMES.th_classic;
+    const tagHTML   = buildTags(item.tags);
+    const priceStr  = item.price===0 ? 'FREE' : item.curr==='gems' ? `💎 ${item.price}` : `🪙 ${item.price}`;
+
+    // ✅ Ad progress tracking
+    const adsWatched  = (PD.itemAdsWatched && PD.itemAdsWatched[item.id]) || 0;
+    const adsRequired = item.adAlt || 0;
+    const adsLeft     = Math.max(0, adsRequired - adsWatched);
+
+    // Theme color swatch
+    const swatchStyle=`
+      background:linear-gradient(135deg,${td.a},${td.b},${td.c});
+      border-radius:10px;width:50px;height:50px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;font-size:24px;
+      ${isEquipped ? `border:2px solid var(--gold);box-shadow:0 0 12px rgba(255,215,0,0.5);` : ''}
+    `;
+
+    card.innerHTML=`
+      ${isEquipped
+        ? '<div class="siOwnTag ownGold">✓ ON</div>'
+        : isOwned ? '<div class="siOwnTag ownGrn">OWNED</div>' : ''
+      }
+      <div style="${swatchStyle}">${item.icon}</div>
+      <div class="siInfo">
+        <div class="siName">${item.name}</div>
+        ${tagHTML ? `<div class="siTags">${tagHTML}</div>` : ''}
+        <div class="siDesc">${item.desc}</div>
+
+        <!-- Color dots preview -->
+        <div style="display:flex;gap:5px;margin-bottom:7px;">
+          <div style="width:16px;height:16px;border-radius:50%;background:${td.a};box-shadow:0 0 6px ${td.a};"></div>
+          <div style="width:16px;height:16px;border-radius:50%;background:${td.b};box-shadow:0 0 6px ${td.b};"></div>
+          <div style="width:16px;height:16px;border-radius:50%;background:${td.c};box-shadow:0 0 6px ${td.c};"></div>
+        </div>
+
+        <div class="siBottom">
+          ${isEquipped
+            ? `<button class="equipBtn equipped">✓ EQUIPPED</button>`
+            : isOwned
+            ? `<button class="equipBtn"
+                 onclick="event.stopPropagation();equipTheme('${item.id}')">
+                 EQUIP
+               </button>`
+            : `<div class="siPrice ${item.curr==='gems'?'gem':'gold'}">${priceStr}</div>
+               ${adsRequired > 0
+                 ? `<div class="siAdBtn"
+                      onclick="event.stopPropagation();adUnlockItem('${item.id}')"
+                      style="position:relative;">
+                      📺 ${adsWatched}/${adsRequired} ads
+                      ${adsWatched > 0
+                        ? `<span style="
+                            position:absolute;top:-6px;right:-6px;
+                            background:#ff6600;color:#fff;
+                            font-size:8px;border-radius:50%;
+                            width:14px;height:14px;
+                            display:flex;align-items:center;justify-content:center;
+                            font-weight:bold;">
+                            ${adsLeft}
+                          </span>`
+                        : ''
+                      }
+                    </div>`
+                 : ''
+               }`
+          }
+        </div>
+
+        ${!isOwned && adsRequired > 0 && adsWatched > 0
+          ? `<div style="margin-top:6px;">
+               <div style="background:rgba(180,0,255,0.15);border-radius:6px;height:6px;overflow:hidden;">
+                 <div style="
+                   width:${Math.round((adsWatched/adsRequired)*100)}%;
+                   height:100%;
+                   background:linear-gradient(90deg,${td.a},${td.b});
+                   border-radius:6px;
+                   transition:width 0.3s;">
+                 </div>
+               </div>
+               <div style="font-size:8px;color:rgba(200,150,255,0.7);margin-top:3px;letter-spacing:1px;">
+                 ${adsLeft > 0
+                   ? `${adsLeft} more ad${adsLeft>1?'s':''} to unlock`
+                   : '✅ Ready to unlock!'
+                 }
+               </div>
+             </div>`
+          : ''
+        }
+      </div>`;
+
+    if(!isEquipped) card.addEventListener('click', ()=>isOwned ? equipTheme(item.id) : buyItem(item.id));
     container.appendChild(card);
   });
 }
+
 
 function buildCurrencySection(container){
   SHOP_CATALOG.currency.forEach(pack=>{
@@ -1465,13 +1700,94 @@ function buyItem(id){
   if(id.startsWith('th_'))equipTheme(id);
 }
 
+// ✅ FIXED: Track ads watched per item and unlock when reached
 function adUnlockItem(id){
   const allItems=[...SHOP_CATALOG.skins,...SHOP_CATALOG.themes,...SHOP_CATALOG.powerups];
-  const item=allItems.find(x=>x.id===id);if(!item)return;
-  itemAdQ=item;
-  AD_REWARDS.item.items=[{icon:item.icon,amt:item.name,lbl:'UNLOCK'},{icon:'🪙',amt:'+50 Coins',lbl:'BONUS'}];
+  const item=allItems.find(x=>x.id===id);
+  if(!item) return;
+
+  // Already owned — just equip
+  if(PD.ownedItems.includes(id)){
+    if(id.startsWith('sk_')) equipSkin(id);
+    if(id.startsWith('th_')) equipTheme(id);
+    showNotif('✅ Already owned!','Equipping now',1000);
+    return;
+  }
+
+  // Init ad tracker
+  if(!PD.itemAdsWatched) PD.itemAdsWatched={};
+  const watched = PD.itemAdsWatched[id] || 0;
+  const required = item.adAlt || 1;
+  const remaining = required - watched;
+
+  // Update ad modal reward items to show progress
+  AD_REWARDS.item.items=[
+    {icon:item.icon, amt:item.name, lbl:'UNLOCK'},
+    {icon:'📺', amt:`${watched+1}/${required} ads`, lbl:'PROGRESS'},
+  ];
+
+  itemAdQ = item;
   showAd('item');
 }
+
+// ✅ FIXED: doItemAdUnlock — properly tracks and unlocks
+function doItemAdUnlock(){
+  if(!itemAdQ) return;
+  const item = itemAdQ;
+  const id   = item.id;
+
+  // Init tracker
+  if(!PD.itemAdsWatched) PD.itemAdsWatched={};
+  if(!PD.itemAdsWatched[id]) PD.itemAdsWatched[id]=0;
+
+  // Increment
+  PD.itemAdsWatched[id]++;
+  const watched  = PD.itemAdsWatched[id];
+  const required = item.adAlt || 1;
+  const remaining= required - watched;
+
+  PD.coins += 50;
+  PD.stats.adsWatched++;
+
+  if(watched >= required){
+    // ✅ UNLOCK — add to correct storage
+    if(item.amount){
+      // Consumable powerup — add to inventory
+      addInv(id, item.amount);
+    } else {
+      // Cosmetic — add to ownedItems
+      if(!PD.ownedItems.includes(id)) PD.ownedItems.push(id);
+    }
+
+    // Reset counter
+    PD.itemAdsWatched[id] = 0;
+    savePD();
+    buildShop();
+    updateAllUI();
+    spawnFX(210,400,'#ffd700',25,'burst');
+    flashScreen('rgba(255,215,0,0.4)');
+    showNotif(`🎉 ${item.name} UNLOCKED!`,'Added to your collection!',2500);
+
+    // Auto equip cosmetics
+    if(id.startsWith('sk_')) setTimeout(()=>equipSkin(id), 600);
+    if(id.startsWith('th_')) setTimeout(()=>equipTheme(id), 600);
+
+  } else {
+    // More ads needed
+    savePD();
+    buildShop();
+    updateAllUI();
+    showNotif(
+      `📺 ${watched}/${required} Ads Watched`,
+      `${remaining} more ad${remaining>1?'s':''} to unlock!`,
+      2000
+    );
+  }
+
+  itemAdQ = null;
+}
+
+
 
 function buyCurrency(pack){
   if(pack.curr==='ad') showAd('coins');
