@@ -73,8 +73,8 @@ jobs:
                   .resize(size, size, { fit: 'cover' })
                   .png()
                   .toFile(path.join(dir, name))
-                  .then(() => console.log(`✅ ${folder}/${name}`))
-                  .catch(err => console.error(`❌ ${name}:`, err))
+                  .then(() => console.log('✅ ' + folder + '/' + name))
+                  .catch(err => console.error('❌ ' + name + ':', err))
               );
             });
           });
@@ -104,16 +104,15 @@ jobs:
           EOF
           echo "✅ Keystore ready"
 
-      - name: ⚙️ Rewrite build.gradle
+      - name: ⚙️ Rewrite build.gradle With All Fixes
         run: |
-          # ✅ COMPLETELY REWRITE build.gradle
-          # This fixes rootProject null error AND sets SDK 35
           cat > android/app/build.gradle << 'GRADLEEOF'
           apply plugin: 'com.android.application'
 
           android {
               namespace "com.ayushmalviya.potionsort"
               compileSdk 35
+
               defaultConfig {
                   applicationId "com.ayushmalviya.potionsort"
                   minSdk 22
@@ -121,6 +120,7 @@ jobs:
                   versionCode 2
                   versionName "1.0.1"
               }
+
               signingConfigs {
                   release {
                       def keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -132,6 +132,7 @@ jobs:
                       keyPassword keystoreProperties['keyPassword']
                   }
               }
+
               buildTypes {
                   release {
                       signingConfig signingConfigs.release
@@ -153,11 +154,57 @@ jobs:
               implementation "androidx.appcompat:appcompat:1.6.1"
               implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
               implementation "com.google.android.gms:play-services-ads:23.0.0"
+              // ✅ Fix SplashScreen theme error
+              implementation "androidx.core:core-splashscreen:1.0.1"
           }
           GRADLEEOF
 
           echo "✅ build.gradle rewritten"
           cat android/app/build.gradle
+
+      - name: 🎨 Fix SplashScreen Theme
+        run: |
+          # Create styles.xml with SplashScreen theme
+          mkdir -p android/app/src/main/res/values
+
+          cat > android/app/src/main/res/values/styles.xml << 'STYLESEOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+                  <item name="colorPrimary">@color/colorPrimary</item>
+                  <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+                  <item name="colorAccent">@color/colorAccent</item>
+              </style>
+
+              <style name="Theme.SplashScreen" parent="Theme.SplashScreen.IconBackground">
+                  <item name="windowSplashScreenBackground">@color/colorPrimary</item>
+                  <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+                  <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+              </style>
+
+              <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
+                  <item name="windowActionBar">false</item>
+                  <item name="windowNoTitle">true</item>
+              </style>
+
+              <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+              </style>
+          </resources>
+          STYLESEOF
+
+          echo "✅ styles.xml created"
+
+          # Create colors.xml
+          cat > android/app/src/main/res/values/colors.xml << 'COLORSEOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="colorPrimary">#040210</color>
+              <color name="colorPrimaryDark">#040210</color>
+              <color name="colorAccent">#7700ff</color>
+          </resources>
+          COLORSEOF
+
+          echo "✅ colors.xml created"
 
       - name: 🔧 Make Gradlew Executable
         run: chmod +x android/gradlew
