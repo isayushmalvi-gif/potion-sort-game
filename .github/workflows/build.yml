@@ -57,7 +57,6 @@ jobs:
           const inputFile = 'public/ic_launcher_512.png';
           const resDir = 'android/app/src/main/res';
 
-          // Check if input file exists
           if (!fs.existsSync(inputFile)) {
             console.error('❌ Icon file not found:', inputFile);
             process.exit(1);
@@ -73,74 +72,45 @@ jobs:
             { size: 192, folder: 'mipmap-xxxhdpi' },
           ];
 
-          // Process all sizes
           const promises = [];
-
           sizes.forEach(({ size, folder }) => {
             const dir = path.join(resDir, folder);
-
-            // Create directory if not exists
             fs.mkdirSync(dir, { recursive: true });
             console.log('📁 Created dir:', dir);
 
-            // Generate square icon
-            const p1 = sharp(inputFile)
-              .resize(size, size, { fit: 'cover' })
-              .png()
-              .toFile(path.join(dir, 'ic_launcher.png'))
-              .then(() => console.log(`✅ ${folder}/ic_launcher.png (${size}x${size})`))
-              .catch(err => console.error(`❌ ${folder}/ic_launcher.png:`, err));
-            promises.push(p1);
-
-            // Generate round icon (same image, Android uses it for circular display)
-            const p2 = sharp(inputFile)
-              .resize(size, size, { fit: 'cover' })
-              .png()
-              .toFile(path.join(dir, 'ic_launcher_round.png'))
-              .then(() => console.log(`✅ ${folder}/ic_launcher_round.png`))
-              .catch(err => console.error(`❌ ${folder}/ic_launcher_round.png:`, err));
-            promises.push(p2);
-
-            // Generate foreground icon (for adaptive icons)
-            const p3 = sharp(inputFile)
-              .resize(size, size, { fit: 'cover' })
-              .png()
-              .toFile(path.join(dir, 'ic_launcher_foreground.png'))
-              .then(() => console.log(`✅ ${folder}/ic_launcher_foreground.png`))
-              .catch(err => console.error(`❌ foreground:`, err));
-            promises.push(p3);
+            ['ic_launcher.png','ic_launcher_round.png','ic_launcher_foreground.png'].forEach(name => {
+              const p = sharp(inputFile)
+                .resize(size, size, { fit: 'cover' })
+                .png()
+                .toFile(path.join(dir, name))
+                .then(() => console.log(`✅ ${folder}/${name} (${size}x${size})`))
+                .catch(err => console.error(`❌ ${name}:`, err));
+              promises.push(p);
+            });
           });
 
-          // Wait for all to complete
           Promise.all(promises)
             .then(() => {
               console.log('');
               console.log('🎨 All icons generated successfully!');
-              console.log('Sizes: 48, 72, 96, 144, 192');
             })
             .catch(err => {
-              console.error('Error generating icons:', err);
+              console.error('Error:', err);
               process.exit(1);
             });
           ICONEOF
 
           echo "Running icon generator..."
           node resize_icon.js
-
-          echo "Waiting for files to write..."
           sleep 5
-
-          echo "Verifying icons..."
-          ls -la android/app/src/main/res/mipmap-mdpi/
-          ls -la android/app/src/main/res/mipmap-xxxhdpi/
           echo "✅ Icons ready!"
 
       - name: 📝 Update AndroidManifest for AdMob
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
 
-          # Add AdMob App ID
-          sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>\n    </application>|' $MANIFEST
+          # ✅ YOUR REAL ADMOB APP ID
+          sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9421094793250690~5768628779"/>\n    </application>|' $MANIFEST
 
           # Add AD_ID permission
           sed -i 's|<uses-permission android:name="android.permission.INTERNET"/>|<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>|' $MANIFEST
