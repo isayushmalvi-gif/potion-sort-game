@@ -43,23 +43,23 @@ jobs:
           npm install @capacitor-community/admob
           npx cap sync android
 
-      - name: 📱 Update Target SDK to 35
+      - name: 📱 Fix Target SDK to 35
         run: |
-          echo "Current build.gradle:"
-          cat android/app/build.gradle
+          GRADLE="android/app/build.gradle"
+          echo "=== BEFORE FIX ==="
+          cat $GRADLE
 
-          # Update compileSdk
-          sed -i 's/compileSdk = 34/compileSdk = 35/g' android/app/build.gradle
-          sed -i 's/compileSdkVersion 34/compileSdkVersion 35/g' android/app/build.gradle
-          sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' android/app/build.gradle
+          # Fix all SDK versions to 35
+          sed -i 's/compileSdk [0-9]*/compileSdk 35/g' $GRADLE
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' $GRADLE
+          sed -i 's/targetSdk [0-9]*/targetSdk 35/g' $GRADLE
+          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 35/g' $GRADLE
+          sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' $GRADLE
+          sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' $GRADLE
 
-          # Update targetSdk
-          sed -i 's/targetSdk = 34/targetSdk = 35/g' android/app/build.gradle
-          sed -i 's/targetSdkVersion 34/targetSdkVersion 35/g' android/app/build.gradle
-          sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' android/app/build.gradle
-
-          echo "✅ Updated build.gradle:"
-          cat android/app/build.gradle
+          echo "=== AFTER FIX ==="
+          cat $GRADLE
+          echo "✅ SDK updated to 35"
 
       - name: 🎨 Generate App Icons
         run: |
@@ -76,6 +76,8 @@ jobs:
             console.error('❌ Icon not found:', inputFile);
             process.exit(1);
           }
+
+          console.log('✅ Found icon file:', inputFile);
 
           const sizes = [
             { size: 48,  folder: 'mipmap-mdpi'    },
@@ -114,6 +116,7 @@ jobs:
           sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9421094793250690~5768628779"/>\n    </application>|' $MANIFEST
           sed -i 's|<uses-permission android:name="android.permission.INTERNET"/>|<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>|' $MANIFEST
           echo "✅ AndroidManifest updated"
+          cat $MANIFEST
 
       - name: 🔑 Setup Keystore
         run: |
@@ -196,4 +199,7 @@ jobs:
         run: |
           echo "=================================="
           echo "  🧙 POTION SORT BUILD COMPLETE!"
+          echo "=================================="
+          echo "  📦 AAB  → Play Store"
+          echo "  📱 APK  → Test on phone"
           echo "=================================="
