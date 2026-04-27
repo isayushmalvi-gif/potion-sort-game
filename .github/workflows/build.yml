@@ -43,33 +43,6 @@ jobs:
           npm install @capacitor-community/admob
           npx cap sync android
 
-      - name: 📱 Fix SDK Version + Version Code
-        run: |
-          GRADLE="android/app/build.gradle"
-          echo "=== BEFORE FIX ==="
-          cat $GRADLE
-
-          # ✅ Fix API level to 35
-          sed -i 's/compileSdk [0-9]*/compileSdk 35/g' $GRADLE
-          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' $GRADLE
-          sed -i 's/targetSdk [0-9]*/targetSdk 35/g' $GRADLE
-          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 35/g' $GRADLE
-          sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' $GRADLE
-          sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' $GRADLE
-
-          # ✅ Fix version code to 2
-          # (version code 1 already uploaded — must be higher)
-          sed -i 's/versionCode [0-9]*/versionCode 2/g' $GRADLE
-          sed -i 's/versionCode = [0-9]*/versionCode = 2/g' $GRADLE
-
-          # ✅ Fix version name
-          sed -i 's/versionName "[^"]*"/versionName "1.0.1"/g' $GRADLE
-          sed -i 's/versionName = "[^"]*"/versionName = "1.0.1"/g' $GRADLE
-
-          echo "=== AFTER FIX ==="
-          cat $GRADLE
-          echo "✅ SDK=35, versionCode=2, versionName=1.0.1"
-
       - name: 🎨 Generate App Icons
         run: |
           npm install sharp
@@ -77,17 +50,12 @@ jobs:
           const sharp = require('sharp');
           const fs = require('fs');
           const path = require('path');
-
           const inputFile = 'public/ic_launcher_512.png';
           const resDir = 'android/app/src/main/res';
-
           if (!fs.existsSync(inputFile)) {
-            console.error('❌ Icon not found:', inputFile);
+            console.error('Icon not found:', inputFile);
             process.exit(1);
           }
-
-          console.log('✅ Found icon file:', inputFile);
-
           const sizes = [
             { size: 48,  folder: 'mipmap-mdpi'    },
             { size: 72,  folder: 'mipmap-hdpi'    },
@@ -95,24 +63,23 @@ jobs:
             { size: 144, folder: 'mipmap-xxhdpi'  },
             { size: 192, folder: 'mipmap-xxxhdpi' },
           ];
-
           const promises = [];
           sizes.forEach(({ size, folder }) => {
             const dir = path.join(resDir, folder);
             fs.mkdirSync(dir, { recursive: true });
             ['ic_launcher.png','ic_launcher_round.png'].forEach(name => {
-              const p = sharp(inputFile)
-                .resize(size, size, { fit: 'cover' })
-                .png()
-                .toFile(path.join(dir, name))
-                .then(() => console.log(`✅ ${folder}/${name}`))
-                .catch(err => console.error(`❌ ${name}:`, err));
-              promises.push(p);
+              promises.push(
+                sharp(inputFile)
+                  .resize(size, size, { fit: 'cover' })
+                  .png()
+                  .toFile(path.join(dir, name))
+                  .then(() => console.log(`✅ ${folder}/${name}`))
+                  .catch(err => console.error(`❌ ${name}:`, err))
+              );
             });
           });
-
           Promise.all(promises)
-            .then(() => console.log('🎨 All icons done!'))
+            .then(() => console.log('All icons done!'))
             .catch(err => { console.error(err); process.exit(1); });
           ICONEOF
           node resize_icon.js
@@ -137,30 +104,60 @@ jobs:
           EOF
           echo "✅ Keystore ready"
 
-      - name: ⚙️ Configure Signing
+      - name: ⚙️ Rewrite build.gradle
         run: |
-          cat >> android/app/build.gradle << 'EOF'
+          # ✅ COMPLETELY REWRITE build.gradle
+          # This fixes rootProject null error AND sets SDK 35
+          cat > android/app/build.gradle << 'GRADLEEOF'
+          apply plugin: 'com.android.application'
 
           android {
+              namespace "com.ayushmalviya.potionsort"
+              compileSdk 35
+              defaultConfig {
+                  applicationId "com.ayushmalviya.potionsort"
+                  minSdk 22
+                  targetSdk 35
+                  versionCode 2
+                  versionName "1.0.1"
+              }
               signingConfigs {
                   release {
-                      def props = new Properties()
-                      props.load(new FileInputStream(rootProject.file("keystore.properties")))
-                      storeFile file(props['storeFile'])
-                      storePassword props['storePassword']
-                      keyAlias props['keyAlias']
-                      keyPassword props['keyPassword']
+                      def keystorePropertiesFile = rootProject.file("keystore.properties")
+                      def keystoreProperties = new Properties()
+                      keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+                      storeFile file(keystoreProperties['storeFile'])
+                      storePassword keystoreProperties['storePassword']
+                      keyAlias keystoreProperties['keyAlias']
+                      keyPassword keystoreProperties['keyPassword']
                   }
               }
               buildTypes {
                   release {
                       signingConfig signingConfigs.release
                       minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
                   }
               }
           }
-          EOF
-          echo "✅ Signing configured"
+
+          repositories {
+              flatDir {
+                  dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+              }
+          }
+
+          dependencies {
+              implementation fileTree(include: ['*.jar'], dir: 'libs')
+              implementation project(':capacitor-android')
+              implementation "androidx.appcompat:appcompat:1.6.1"
+              implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
+              implementation "com.google.android.gms:play-services-ads:23.0.0"
+          }
+          GRADLEEOF
+
+          echo "✅ build.gradle rewritten"
+          cat android/app/build.gradle
 
       - name: 🔧 Make Gradlew Executable
         run: chmod +x android/gradlew
@@ -207,8 +204,6 @@ jobs:
         run: |
           echo "=================================="
           echo "  🧙 POTION SORT BUILD COMPLETE!"
-          echo "=================================="
           echo "  versionCode: 2"
-          echo "  versionName: 1.0.1"
           echo "  targetSdk:   35"
           echo "=================================="
