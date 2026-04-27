@@ -43,13 +43,13 @@ jobs:
           npm install @capacitor-community/admob
           npx cap sync android
 
-      - name: 📱 Fix Target SDK to 35
+      - name: 📱 Fix SDK Version + Version Code
         run: |
           GRADLE="android/app/build.gradle"
           echo "=== BEFORE FIX ==="
           cat $GRADLE
 
-          # Fix all SDK versions to 35
+          # ✅ Fix API level to 35
           sed -i 's/compileSdk [0-9]*/compileSdk 35/g' $GRADLE
           sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 35/g' $GRADLE
           sed -i 's/targetSdk [0-9]*/targetSdk 35/g' $GRADLE
@@ -57,9 +57,18 @@ jobs:
           sed -i 's/compileSdk = [0-9]*/compileSdk = 35/g' $GRADLE
           sed -i 's/targetSdk = [0-9]*/targetSdk = 35/g' $GRADLE
 
+          # ✅ Fix version code to 2
+          # (version code 1 already uploaded — must be higher)
+          sed -i 's/versionCode [0-9]*/versionCode 2/g' $GRADLE
+          sed -i 's/versionCode = [0-9]*/versionCode = 2/g' $GRADLE
+
+          # ✅ Fix version name
+          sed -i 's/versionName "[^"]*"/versionName "1.0.1"/g' $GRADLE
+          sed -i 's/versionName = "[^"]*"/versionName = "1.0.1"/g' $GRADLE
+
           echo "=== AFTER FIX ==="
           cat $GRADLE
-          echo "✅ SDK updated to 35"
+          echo "✅ SDK=35, versionCode=2, versionName=1.0.1"
 
       - name: 🎨 Generate App Icons
         run: |
@@ -116,7 +125,6 @@ jobs:
           sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9421094793250690~5768628779"/>\n    </application>|' $MANIFEST
           sed -i 's|<uses-permission android:name="android.permission.INTERNET"/>|<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>|' $MANIFEST
           echo "✅ AndroidManifest updated"
-          cat $MANIFEST
 
       - name: 🔑 Setup Keystore
         run: |
@@ -200,6 +208,7 @@ jobs:
           echo "=================================="
           echo "  🧙 POTION SORT BUILD COMPLETE!"
           echo "=================================="
-          echo "  📦 AAB  → Play Store"
-          echo "  📱 APK  → Test on phone"
+          echo "  versionCode: 2"
+          echo "  versionName: 1.0.1"
+          echo "  targetSdk:   35"
           echo "=================================="
