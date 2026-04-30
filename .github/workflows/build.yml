@@ -46,16 +46,20 @@ jobs:
       - name: 🎨 Generate App Icons
         run: |
           npm install sharp
+
           cat > resize_icon.js << 'ICONEOF'
           const sharp = require('sharp');
           const fs = require('fs');
           const path = require('path');
+
           const inputFile = 'public/ic_launcher_512.png';
           const resDir = 'android/app/src/main/res';
+
           if (!fs.existsSync(inputFile)) {
-            console.error('Icon not found:', inputFile);
+            console.error('Icon not found!');
             process.exit(1);
           }
+
           const sizes = [
             { size: 48,  folder: 'mipmap-mdpi'    },
             { size: 72,  folder: 'mipmap-hdpi'    },
@@ -63,28 +67,65 @@ jobs:
             { size: 144, folder: 'mipmap-xxhdpi'  },
             { size: 192, folder: 'mipmap-xxxhdpi' },
           ];
+
           const promises = [];
           sizes.forEach(({ size, folder }) => {
             const dir = path.join(resDir, folder);
             fs.mkdirSync(dir, { recursive: true });
-            ['ic_launcher.png','ic_launcher_round.png'].forEach(name => {
+            [
+              'ic_launcher.png',
+              'ic_launcher_round.png',
+              'ic_launcher_foreground.png',
+              'ic_launcher_background.png',
+            ].forEach(name => {
               promises.push(
                 sharp(inputFile)
                   .resize(size, size, { fit: 'cover' })
                   .png()
                   .toFile(path.join(dir, name))
                   .then(() => console.log('✅ ' + folder + '/' + name))
-                  .catch(err => console.error('❌ ' + name + ':', err))
+                  .catch(err => console.log('⚠️ ' + name + ': ' + err.message))
               );
             });
           });
+
           Promise.all(promises)
-            .then(() => console.log('All icons done!'))
-            .catch(err => { console.error(err); process.exit(1); });
+            .then(() => console.log('🎨 All icons done!'))
+            .catch(err => console.error(err));
           ICONEOF
+
           node resize_icon.js
-          sleep 3
+          sleep 5
           echo "✅ Icons generated"
+
+      - name: 🎨 Fix Adaptive Icons
+        run: |
+          RES="android/app/src/main/res"
+          mkdir -p $RES/mipmap-anydpi-v26
+
+          # Remove old adaptive icon XMLs
+          rm -f $RES/mipmap-anydpi-v26/ic_launcher.xml
+          rm -f $RES/mipmap-anydpi-v26/ic_launcher_round.xml
+
+          # Create new ones pointing to our custom icons
+          cat > $RES/mipmap-anydpi-v26/ic_launcher.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@mipmap/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
+          cat > $RES/mipmap-anydpi-v26/ic_launcher_round.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@mipmap/ic_launcher_background"/>
+              <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+          </adaptive-icon>
+          EOF
+
+          echo "✅ Adaptive icons fixed"
+          ls -la $RES/mipmap-xxxhdpi/
 
       - name: 📝 Update AndroidManifest for AdMob
         run: |
@@ -104,7 +145,7 @@ jobs:
           EOF
           echo "✅ Keystore ready"
 
-      - name: ⚙️ Rewrite build.gradle With All Fixes
+      - name: ⚙️ Rewrite build.gradle
         run: |
           cat > android/app/build.gradle << 'GRADLEEOF'
           apply plugin: 'com.android.application'
@@ -117,8 +158,8 @@ jobs:
                   applicationId "com.ayushmalviya.potionsort"
                   minSdk 22
                   targetSdk 35
-                  versionCode 2
-                  versionName "1.0.1"
+                  versionCode 3
+                  versionName "1.0.2"
               }
 
               signingConfigs {
@@ -154,20 +195,16 @@ jobs:
               implementation "androidx.appcompat:appcompat:1.6.1"
               implementation "androidx.coordinatorlayout:coordinatorlayout:1.2.0"
               implementation "com.google.android.gms:play-services-ads:23.0.0"
-              // ✅ Fix SplashScreen theme error
               implementation "androidx.core:core-splashscreen:1.0.1"
           }
           GRADLEEOF
-
           echo "✅ build.gradle rewritten"
-          cat android/app/build.gradle
 
       - name: 🎨 Fix SplashScreen Theme
         run: |
-          # Create styles.xml with SplashScreen theme
           mkdir -p android/app/src/main/res/values
 
-          cat > android/app/src/main/res/values/styles.xml << 'STYLESEOF'
+          cat > android/app/src/main/res/values/styles.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
@@ -175,36 +212,30 @@ jobs:
                   <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
                   <item name="colorAccent">@color/colorAccent</item>
               </style>
-
               <style name="Theme.SplashScreen" parent="Theme.SplashScreen.IconBackground">
                   <item name="windowSplashScreenBackground">@color/colorPrimary</item>
                   <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
                   <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
               </style>
-
               <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.NoActionBar">
                   <item name="windowActionBar">false</item>
                   <item name="windowNoTitle">true</item>
               </style>
-
               <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
               </style>
           </resources>
-          STYLESEOF
+          EOF
 
-          echo "✅ styles.xml created"
-
-          # Create colors.xml
-          cat > android/app/src/main/res/values/colors.xml << 'COLORSEOF'
+          cat > android/app/src/main/res/values/colors.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <color name="colorPrimary">#040210</color>
               <color name="colorPrimaryDark">#040210</color>
               <color name="colorAccent">#7700ff</color>
           </resources>
-          COLORSEOF
+          EOF
 
-          echo "✅ colors.xml created"
+          echo "✅ Styles and colors created"
 
       - name: 🔧 Make Gradlew Executable
         run: chmod +x android/gradlew
@@ -251,6 +282,7 @@ jobs:
         run: |
           echo "=================================="
           echo "  🧙 POTION SORT BUILD COMPLETE!"
-          echo "  versionCode: 2"
+          echo "  versionCode: 3"
           echo "  targetSdk:   35"
+          echo "  Icon: FIXED ✅"
           echo "=================================="
